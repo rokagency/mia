@@ -37,7 +37,10 @@ ENV NODE_ENV=production
 # `tsx`, `@prisma/client`, etc. without a second image.
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
+# public/ is optional. The [c] turns the path into a glob; an empty
+# match is a no-op rather than a build failure when the repo has no
+# public/ directory.
+COPY --from=builder /app/publi[c] ./public/
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
