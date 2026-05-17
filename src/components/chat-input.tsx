@@ -45,7 +45,10 @@ export function ChatInput({
           rows={1}
           placeholder={placeholder ?? "Type a message…"}
           disabled={disabled}
-          className="min-h-[36px] flex-1 resize-none border-0 bg-transparent px-2 py-1.5 text-xs placeholder:text-neutral-400 focus:outline-none disabled:opacity-50"
+          // 16px on mobile so iOS Safari doesn't auto-zoom on focus
+          // (any value < 16px triggers the zoom-to-input behavior).
+          // Drops back to 12px on desktop to match the message body.
+          className="min-h-[36px] flex-1 resize-none border-0 bg-transparent px-2 py-1.5 text-base sm:text-xs placeholder:text-neutral-400 focus:outline-none disabled:opacity-50"
           style={{ color: "var(--brand-text, #171717)" }}
         />
         <button
