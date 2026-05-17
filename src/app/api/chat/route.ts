@@ -123,13 +123,36 @@ export async function POST(req: Request) {
     );
   }
 
-  // Origin check: cross-origin POSTs from a browser always carry an
-  // Origin header. Same-origin browsers may omit it on POST; fall back
-  // to Referer in that case. We compare against the business's
-  // allowedOrigins list. A miss returns 403 — that's the gate that
-  // protects the chat from being called from an unauthorized site.
+  // Origin check.
+  //
+  // The chat UI runs inside an iframe served from our own origin
+  // (mia.agenciarok.es). When that iframe POSTs to /api/chat the
+  // browser sends `Origin: https://mia.agenciarok.es` — a same-origin
+  // request. That's the normal path and we accept it.
+  //
+  // Direct cross-origin POSTs (e.g. someone scripting against our API
+  // from their own site) carry their site's Origin and must be on the
+  // business's allowedOrigins list, otherwise 403.
+  //
+  // The page-level Referer check in /[slug]/page.tsx is what actually
+  // gates the embed (the iframe only renders the chat UI if the
+  // parent page is in allowedOrigins). This API check is the
+  // belt-and-suspenders for direct API abuse.
   const origin = req.headers.get("origin") ?? req.headers.get("referer");
-  const matchedOrigin = matchAllowedOrigin(origin, active.allowedOrigins);
+  const host = req.headers.get("host");
+  const isSameOrigin = !!origin && !!host &&
+    (() => {
+      try {
+        return new URL(origin).host === host;
+      } catch {
+        return false;
+      }
+    })();
+
+  const matchedOrigin = isSameOrigin
+    ? origin!
+    : matchAllowedOrigin(origin, active.allowedOrigins);
+
   if (!matchedOrigin) {
     return NextResponse.json(
       { error: "Origin not allowed for this business" },
