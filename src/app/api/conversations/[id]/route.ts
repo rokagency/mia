@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getConversation } from "@/lib/conversations";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
  * Dev-only single-conversation endpoint. Returns the full transcript

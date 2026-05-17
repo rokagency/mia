@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listLeads } from "@/lib/leads";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
  * Dev-only listing endpoint. No auth — do NOT ship beyond local dev as-is.

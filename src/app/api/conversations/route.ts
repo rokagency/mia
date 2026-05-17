@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listConversations } from "@/lib/conversations";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
  * Dev-only listing endpoint for conversations. No auth — do NOT ship

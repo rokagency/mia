@@ -14,6 +14,7 @@ import { formatChunksForPrompt, searchChunks } from "@/lib/retrieval";
 import { evaluateFastSafetyGuard } from "@/lib/safety-guard";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
