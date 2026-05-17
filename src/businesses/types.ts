@@ -201,6 +201,15 @@ export type Business = {
   /** Custom opening message. If absent, a default is generated from `name` + `language`. */
   greeting?: string;
 
+  /**
+   * URL to the business's privacy policy. Rendered as a footer link in
+   * the chat ("By chatting with us, you agree to our Privacy Policy").
+   * Should point to the business's own domain, e.g.
+   * "https://drasofiavazquez.com.ar/politica-privacidad". If absent, the
+   * privacy notice is not shown.
+   */
+  privacyPolicyUrl?: string;
+
   address?: string;
   hours?: WeeklyHours;
 

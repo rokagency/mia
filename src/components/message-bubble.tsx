@@ -72,14 +72,14 @@ export function MessageBubble({ role, content }: Props) {
     <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[85%] px-4 py-2.5 text-sm leading-relaxed",
+          "max-w-[85%] px-4 py-2.5 text-xs leading-relaxed",
           isUser
             ? "rounded-2xl rounded-br-md text-white"
             : "rounded-2xl rounded-bl-md bg-[#f5f5f5]"
         )}
         style={
           isUser
-            ? { background: "var(--brand-text, #171717)" }
+            ? { background: "#000" }
             : { color: "var(--brand-text, #171717)" }
         }
       >

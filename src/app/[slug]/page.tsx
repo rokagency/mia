@@ -45,6 +45,7 @@ export default async function ChatPage({
       quickActions={found.business.quickActions}
       branding={found.business.branding}
       logoUrl={found.business.logoUrl}
+      privacyPolicyUrl={found.business.privacyPolicyUrl}
     />
   );
 }

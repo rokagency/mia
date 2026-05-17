@@ -23,6 +23,21 @@ type Props = {
   quickActions?: readonly QuickAction[];
   branding?: BusinessBranding;
   logoUrl?: string;
+  /** Optional URL to the business's privacy policy. If set, an
+   *  Intercom-style "By chatting with us, you agree to our Privacy
+   *  Policy" notice is rendered in the footer linking to this URL. */
+  privacyPolicyUrl?: string;
+};
+
+const PRIVACY_COPY = {
+  es: {
+    prefix: "Al chatear con nosotros, aceptás nuestra ",
+    link: "Política de Privacidad",
+  },
+  en: {
+    prefix: "By chatting with us, you agree to our ",
+    link: "Privacy Policy",
+  },
 };
 
 const DEFAULT_GREETINGS = {
@@ -31,6 +46,23 @@ const DEFAULT_GREETINGS = {
   en: (name: string) =>
     `Hi, thanks for reaching out to ${name} — I'm Mia, the virtual receptionist. How can I help you today?`,
 };
+
+const GREETING_EMOJI = " 👋";
+
+/**
+ * Append a friendly wave emoji to the greeting if it doesn't already end with
+ * an emoji. Keeps the welcome message consistent with the Intercom-style look
+ * regardless of whether the greeting comes from the DB or the default.
+ */
+function withGreetingEmoji(greeting: string): string {
+  // Quick check: if the trimmed greeting already ends with any non-ASCII char
+  // (likely an emoji the operator added), don't double up.
+  const trimmed = greeting.trimEnd();
+  const lastChar = trimmed.slice(-2); // 2 chars covers most emoji surrogates
+  // eslint-disable-next-line no-control-regex
+  if (/[^\x00-\x7F]/.test(lastChar)) return trimmed;
+  return `${trimmed}${GREETING_EMOJI}`;
+}
 
 const STATUS_LINE = {
   es: "Asistente virtual · responde enseguida",
@@ -82,8 +114,10 @@ export function ChatWindow({
   quickActions,
   branding,
   logoUrl,
+  privacyPolicyUrl,
 }: Props) {
-  const finalGreeting = greeting ?? DEFAULT_GREETINGS[language](name);
+  const baseGreeting = greeting ?? DEFAULT_GREETINGS[language](name);
+  const finalGreeting = withGreetingEmoji(baseGreeting);
   const status = STATUS_LINE[language];
   const placeholder = PLACEHOLDER[language];
   const initial = name.trim().charAt(0).toUpperCase();
@@ -228,12 +262,29 @@ export function ChatWindow({
             disabled={isBusy}
             placeholder={placeholder}
           />
-          <p
-            className="mt-2 text-center text-[10px] uppercase tracking-wide"
-            style={{ color: "color-mix(in srgb, var(--brand-text) 40%, transparent)" }}
-          >
-            Powered by Deskia
-          </p>
+          {privacyPolicyUrl ? (
+            <p
+              className="mt-2 text-center text-[10px]"
+              style={{ color: "color-mix(in srgb, var(--brand-text) 50%, transparent)" }}
+            >
+              {PRIVACY_COPY[language].prefix}
+              <a
+                href={privacyPolicyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:opacity-80"
+              >
+                {PRIVACY_COPY[language].link}
+              </a>
+            </p>
+          ) : (
+            <p
+              className="mt-2 text-center text-[10px] uppercase tracking-wide"
+              style={{ color: "color-mix(in srgb, var(--brand-text) 40%, transparent)" }}
+            >
+              Powered by Deskia
+            </p>
+          )}
         </div>
       </footer>
     </div>
