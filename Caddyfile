@@ -1,0 +1,38 @@
+# ⚠️  NOT USED ON THE CURRENT DIGITALOCEAN DROPLET.
+#
+# This droplet already runs host-level Nginx serving multiple existing
+# domains, so Nginx owns ports 80/443. Caddy would collide with it.
+#
+# The active production setup uses:
+#   • host Nginx as the public reverse proxy + SSL terminator (via Certbot)
+#   • docker-compose.prod.yml with the `web` container bound to
+#     127.0.0.1:3000 so only the host's Nginx can reach it.
+#
+# See docs/DEPLOYMENT.md.
+#
+# This Caddyfile is kept in the repo only as a reference for future
+# deployments to single-tenant droplets (one app per VPS, no other
+# domains) where Caddy is the simplest SSL solution. To use it there,
+# re-add the `caddy` service to docker-compose.prod.yml and swap the
+# `web` container's `ports` for `expose`.
+
+mia.agenciarok.es {
+    reverse_proxy web:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+
+    encode gzip zstd
+
+    log {
+        output stdout
+        format console
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}

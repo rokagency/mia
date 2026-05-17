@@ -1,0 +1,60 @@
+services:
+  web:
+    build: .
+    container_name: deskia-web
+    ports:
+      - "3000:3000"
+      - "5555:5555" # Prisma Studio (on demand)
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    env_file:
+      - .env.local
+    environment:
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    # Same image as `web` — only the entrypoint differs. tsx runs TypeScript
+    # directly (no build step) so the worker reloads on file change like
+    # `next dev` does for the web app.
+    build: .
+    container_name: deskia-worker
+    command: npx tsx watch src/worker/index.ts
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env.local
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: deskia-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: deskia
+      POSTGRES_PASSWORD: deskia_dev
+      POSTGRES_DB: deskia
+    volumes:
+      - deskia_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deskia -d deskia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  deskia_pgdata:

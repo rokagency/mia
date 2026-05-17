@@ -1,0 +1,284 @@
+// Deskia data model.
+//
+// Three groups of tables today:
+//
+//   Chat side (existing)
+//     Conversation  one chat session.
+//     Message       every turn (user/assistant/tool) with token usage.
+//     Lead          a "please contact me" record.
+//
+//   Multi-tenant + ingest (NEW — Sprint 1)
+//     Business              one client.
+//     KnowledgeSource       a source to crawl/sync (sitemap, page, etc.).
+//     IngestJob             one run of the ingest pipeline for a source.
+//     Document              a fetched page, cleaned to markdown.
+//     Chunk                 a semantic chunk of a document; pgvector later.
+//     FAQ                   business-approved Q→A (read by the chat).
+//     UnansweredQuestion    log of model fallbacks → future FAQ candidates.
+//
+// Sprint 2 will add `businessId` to Conversation/Message/Lead and switch
+// the chat route to read FAQs and chunks from the DB. Sprint 1 keeps the
+// new tables isolated so the live chat is unaffected.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Chat side (unchanged from previous sprint) ────────────────────────
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Nullable so old test conversations don't break the migration.
+  // New conversations created via the chat route always set this.
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  userAgent String?
+  locale    String?
+
+  messageCount    Int     @default(0)
+  whatsappHandoff Boolean @default(false)
+
+  messages Message[]
+  leads    Lead[]
+
+  @@index([createdAt])
+  @@index([whatsappHandoff])
+  @@index([businessId, createdAt])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  createdAt      DateTime @default(now())
+
+  role    String
+  content String @db.Text
+
+  model            String?
+  promptTokens     Int?
+  completionTokens Int?
+
+  toolName   String?
+  toolInput  Json?
+  toolOutput Json?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Nullable so old test leads don't break the migration.
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  name  String?
+  email String?
+  phone String?
+
+  reason          String?
+  appointmentType String?
+  patientType     String?
+  preferredTimes  String?
+
+  source         String  @default("chat")
+  conversationId String?
+  notes          String?
+  status         String  @default("new")
+
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([conversationId])
+  @@index([businessId, createdAt])
+}
+
+// ── Multi-tenant + ingest (Sprint 1) ──────────────────────────────────
+
+model Business {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  websiteUrl  String?
+  industry    String?  // medical | dental | legal | home_services | wellness | other
+  language    String   @default("es")
+  bookingMode String   @default("data_collection") // see src/businesses/types.ts
+
+  // Free-form config: hours, contactChannels, whatsappHandoff, attributes,
+  // googleMaps, etc. App-layer zod schema validates before write.
+  config Json
+
+  knowledgeSources KnowledgeSource[]
+  documents        Document[]
+  faqs             FAQ[]
+  unanswered       UnansweredQuestion[]
+  conversations    Conversation[]
+  leads            Lead[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([industry])
+}
+
+model KnowledgeSource {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // sitemap | page | wordpress | rss | manual
+  kind String
+
+  url String
+
+  // Crawl scope
+  maxDepth Int @default(2)
+  maxPages Int @default(100)
+
+  // Schedule
+  reindexEvery    String?
+  lastReindexedAt DateTime?
+  nextReindexAt   DateTime?
+
+  status       String  @default("active") // active | paused | error
+  errorMessage String?
+
+  jobs IngestJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([nextReindexAt])
+  @@index([status])
+}
+
+model IngestJob {
+  id       String          @id @default(cuid())
+  sourceId String
+  source   KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  status   String @default("pending") // pending | running | completed | failed
+  attempts Int    @default(0)
+  driver   String @default("ts-fetch") // ts-fetch | crawl4ai | jina | wp-plugin
+
+  totalUrls     Int?
+  processedUrls Int @default(0)
+  newDocs       Int @default(0)
+  updatedDocs   Int @default(0)
+  errors        Int @default(0)
+
+  startedAt    DateTime?
+  completedAt  DateTime?
+  errorMessage String?
+  logs         Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  url          String
+  canonicalUrl String?
+
+  title       String?
+  pageType    String? // service | faq | about | contact | team | pricing | policy | blog | location | other
+  contentMd   String  @db.Text
+  contentHash String
+
+  // Source signals for cheap change detection
+  sitemapLastmod   DateTime?
+  httpEtag         String?
+  httpLastModified DateTime?
+
+  // Admin can hide a doc from retrieval without deleting it
+  excluded       Boolean @default(false)
+  excludedReason String?
+
+  fetchedAt DateTime
+  indexedAt DateTime?
+
+  chunks Chunk[]
+
+  @@unique([businessId, url])
+  @@index([businessId, pageType])
+  @@index([businessId, excluded])
+}
+
+model Chunk {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Denormalized for fast filtered retrieval
+  businessId String
+  pageType   String?
+
+  text     String @db.Text
+  position Int
+
+  // embedding will be added in Sprint 3 (pgvector). Nullable so we can
+  // ship retrieval-by-fulltext now and layer semantic on top.
+  // embedding  Unsupported("vector(1536)")?
+
+  @@index([businessId, pageType])
+  @@index([documentId])
+}
+
+model FAQ {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  question String
+  answer   String  @db.Text
+  intents  String[]
+
+  source   String  @default("manual") // manual | auto_promoted
+  approved Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId, approved])
+}
+
+model UnansweredQuestion {
+  id String @id @default(cuid())
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  conversationId String?
+  question       String
+  aiAnswer       String?
+
+  // Dedupes near-identical questions across conversations.
+  count Int @default(1)
+
+  firstAskedAt DateTime @default(now())
+  lastAskedAt  DateTime @default(now())
+
+  status String @default("pending") // pending | promoted_to_faq | dismissed
+
+  @@index([businessId, status, count])
+}

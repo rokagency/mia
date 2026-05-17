@@ -1,0 +1,91 @@
+# Production Docker Compose for Deskia.
+#
+# Deployment topology on this droplet:
+#
+#   Internet ──► host Nginx (ports 80/443, owned by the OS)
+#                       │
+#                       │ proxy_pass http://127.0.0.1:3000
+#                       ▼
+#                  web container (bound ONLY to 127.0.0.1:3000)
+#                       │
+#                       │ docker private network
+#                       ▼
+#                  db, worker (no host ports, internal only)
+#
+# Why no Caddy here: the droplet already runs host-level Nginx serving
+# multiple existing domains (agenciarok.com.ar, agenciarok.es,
+# nieta.agenciarok.com.ar, somosporlaunc.com.ar, plus this one). Nginx
+# owns ports 80 and 443. We MUST NOT start Caddy on this droplet — it
+# would collide with Nginx and break the other sites.
+#
+# SSL is handled by Certbot on the host Nginx (Let's Encrypt).
+# See docs/DEPLOYMENT.md.
+#
+# Differences from docker-compose.yml (dev):
+#   • Uses Dockerfile.prod (multi-stage, `next start` not `next dev`).
+#   • No bind-mounts → image is the single source of truth.
+#   • web is bound to 127.0.0.1:3000 — reachable from the droplet itself
+#     (where host Nginx lives) but NOT from the public internet.
+#   • db and worker have no host ports at all.
+#   • Postgres password comes from .env.production, NOT defaults.
+#
+# Deploy from the droplet:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml exec web npx prisma migrate deploy
+#   docker compose -f docker-compose.prod.yml exec web npm run db:seed   # first time only
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: deskia-web
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    # Bind ONLY to loopback. Host Nginx (running on the droplet) proxies
+    # public traffic to http://127.0.0.1:3000. The app is NOT reachable
+    # from the public internet directly — only through Nginx.
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: deskia-worker
+    restart: unless-stopped
+    # Same image as `web`, different entrypoint.
+    command: npx tsx src/worker/index.ts
+    env_file:
+      - .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    # Intentionally NO `ports:` block — the worker is purely internal,
+    # it polls Postgres and never serves HTTP.
+
+  db:
+    image: postgres:16-alpine
+    container_name: deskia-db
+    restart: unless-stopped
+    # All three POSTGRES_* must be set in .env.production. No defaults
+    # here — we want production deploys to fail loudly if missing rather
+    # than silently fall back to dev credentials.
+    env_file:
+      - .env.production
+    volumes:
+      - deskia_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Intentionally NO `ports:` block — Postgres is only reachable from
+    # the web and worker containers on the private docker network.
+
+volumes:
+  deskia_pgdata:

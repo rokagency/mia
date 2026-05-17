@@ -1,0 +1,51 @@
+###############################################################################
+# Stage 1 — builder: install deps, generate Prisma client, build Next.js.
+###############################################################################
+FROM node:20-alpine AS builder
+
+# OpenSSL is required by Prisma's query engine on Alpine.
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+# Copy manifests + Prisma schema BEFORE install so the `postinstall`
+# (`prisma generate`) can find the schema and produce the typed client.
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
+RUN npm install
+
+# Copy the rest of the source and produce the optimized Next.js build.
+COPY . .
+RUN npm run build
+
+###############################################################################
+# Stage 2 — runner: minimal runtime image. Used for BOTH the web container
+# (CMD = `npm run start`) and the worker container (CMD overridden in
+# docker-compose to `npx tsx src/worker/index.ts`). Sharing one image keeps
+# the build cache hot and the deploy fast.
+###############################################################################
+FROM node:20-alpine AS runner
+
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Copy only what runtime needs from the builder. We keep the full
+# `node_modules` (not the standalone output) so the worker has access to
+# `tsx`, `@prisma/client`, etc. without a second image.
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/scripts ./scripts
+
+EXPOSE 3000
+
+# Default command = web server. Worker overrides via docker-compose.
+CMD ["npm", "run", "start"]
