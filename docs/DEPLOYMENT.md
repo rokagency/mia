@@ -149,6 +149,11 @@ Fill in real values:
   Use it in **two places** in the file: the `POSTGRES_PASSWORD=` line
   AND inside the `DATABASE_URL=` connection string.
 - `ACTIVE_BUSINESS_SLUG` — defaults to `dra-sofia-vazquez`, leave as-is.
+- `ADMIN_PASSWORD` — operator login for `/admin`. Pick something strong.
+- `ADMIN_SESSION_SECRET` — signs the admin session cookie. Generate with:
+  ```bash
+  openssl rand -hex 32
+  ```
 
 Save (Ctrl+O, Enter, Ctrl+X).
 

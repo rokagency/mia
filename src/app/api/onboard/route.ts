@@ -17,12 +17,24 @@ export const dynamic = "force-dynamic";
  * an admin token.
  */
 
+// Slugs that clash with our own static routes / API namespaces. These
+// would silently be shadowed by Next's static-route precedence, so we
+// reject them up front rather than create unreachable businesses.
+const RESERVED_SLUGS = new Set([
+  "admin",
+  "api",
+  "widget.js",
+  "_next",
+  "favicon.ico",
+]);
+
 const onboardSchema = z.object({
   slug: z
     .string()
     .min(2)
     .max(60)
-    .regex(/^[a-z0-9-]+$/, "slug must be kebab-case lowercase alphanumeric"),
+    .regex(/^[a-z0-9-]+$/, "slug must be kebab-case lowercase alphanumeric")
+    .refine((s) => !RESERVED_SLUGS.has(s), "slug is reserved"),
   name: z.string().min(2).max(120),
   websiteUrl: z.string().url(),
   industry: z.string().max(40).optional(),
