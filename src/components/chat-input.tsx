@@ -37,14 +37,7 @@ export function ChatInput({
 
   return (
     <form ref={formRef} onSubmit={onSubmit} className="relative">
-      <div
-        className="flex items-end gap-2 rounded-2xl bg-white px-2 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] ring-1 ring-black/5 focus-within:ring-2 transition-shadow"
-        style={
-          {
-            ["--tw-ring-color" as string]: "var(--brand-primary, #10b981)",
-          } as React.CSSProperties
-        }
-      >
+      <div className="flex items-end gap-2 rounded-2xl bg-white px-2 py-1.5 border border-neutral-200 focus-within:border-neutral-300 transition-colors">
         <textarea
           value={value}
           onChange={onChange}
@@ -52,7 +45,7 @@ export function ChatInput({
           rows={1}
           placeholder={placeholder ?? "Type a message…"}
           disabled={disabled}
-          className="min-h-[36px] flex-1 resize-none border-0 bg-transparent px-2 py-1.5 text-sm placeholder:text-neutral-400 focus:outline-none disabled:opacity-50"
+          className="min-h-[36px] flex-1 resize-none border-0 bg-transparent px-2 py-1.5 text-xs placeholder:text-neutral-400 focus:outline-none disabled:opacity-50"
           style={{ color: "var(--brand-text, #171717)" }}
         />
         <button

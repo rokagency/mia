@@ -30,6 +30,13 @@ const WIDGET = `(function () {
   var origin = new URL(s.src).origin;
   var chatUrl = origin + "/" + encodeURIComponent(slug);
 
+  // ── Keyframes for the spinner (injected once into <head>) ────────
+  var style = document.createElement("style");
+  style.textContent =
+    "@keyframes mia-spin{to{transform:rotate(360deg)}}" +
+    "@keyframes mia-fade-out{to{opacity:0;visibility:hidden}}";
+  document.head.appendChild(style);
+
   // ── Bubble button ────────────────────────────────────────────────
   var btn = document.createElement("button");
   btn.setAttribute("aria-label", "Abrir chat");
@@ -68,14 +75,41 @@ const WIDGET = `(function () {
     "display:none"
   ].join(";");
 
+  // ── Loading overlay (spinner shown until the iframe loads) ───────
+  var loader = document.createElement("div");
+  loader.style.cssText = [
+    "position:absolute",
+    "inset:0",
+    "display:flex",
+    "align-items:center",
+    "justify-content:center",
+    "background:#fff",
+    "transition:opacity .25s ease, visibility .25s ease",
+    "z-index:1"
+  ].join(";");
+  loader.innerHTML =
+    '<svg width="32" height="32" viewBox="0 0 50 50"' +
+    ' style="animation:mia-spin .9s linear infinite"' +
+    ' aria-label="Cargando">' +
+    '<circle cx="25" cy="25" r="20" fill="none" stroke="#e5e7eb" stroke-width="4"/>' +
+    '<circle cx="25" cy="25" r="20" fill="none" stroke="#111" stroke-width="4"' +
+    ' stroke-linecap="round" stroke-dasharray="90 150"/>' +
+    '</svg>';
+  panel.appendChild(loader);
+
   var iframe = null;
   function ensureIframe() {
     if (iframe) return;
     iframe = document.createElement("iframe");
     iframe.src = chatUrl;
     iframe.title = "Chat";
-    iframe.style.cssText = "width:100%;height:100%;border:0;display:block";
+    iframe.style.cssText =
+      "position:absolute;inset:0;width:100%;height:100%;border:0;display:block;z-index:2";
     iframe.allow = "clipboard-write";
+    iframe.addEventListener("load", function () {
+      loader.style.opacity = "0";
+      loader.style.visibility = "hidden";
+    });
     panel.appendChild(iframe);
   }
 

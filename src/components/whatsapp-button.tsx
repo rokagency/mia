@@ -21,7 +21,8 @@ export function WhatsAppButton({ href, label }: Props) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center justify-center gap-1.5 rounded-md bg-[#25D366] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#1ebe57] active:translate-y-px"
+      className="inline-flex items-center justify-center gap-1.5 rounded-md bg-[#25D366] font-medium text-white transition hover:bg-[#1ebe57] active:translate-y-px"
+      style={{ padding: "4px 20px", fontSize: "12px" }}
     >
       <svg
         viewBox="0 0 32 32"
