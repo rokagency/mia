@@ -125,7 +125,7 @@ export default async function ConversationsPage({
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
+function Th({ children }: { children?: React.ReactNode }) {
   return <th className="px-4 py-2 text-left font-medium">{children}</th>;
 }
 function Td({ children }: { children: React.ReactNode }) {
