@@ -1,6 +1,8 @@
 import { openai } from "@ai-sdk/openai";
 import { streamText, tool, type CoreMessage } from "ai";
-import { getActiveBusiness } from "@/lib/active-business";
+import { NextResponse } from "next/server";
+import { findBusinessBySlug, getActiveBusiness } from "@/lib/active-business";
+import { matchAllowedOrigin } from "@/lib/origin-check";
 import {
   appendAssistantMessage,
   appendToolMessage,
@@ -100,13 +102,40 @@ async function handleTurn(
 type ChatRequestBody = {
   id?: string;
   messages: CoreMessage[];
+  slug?: string;
 };
 
 export async function POST(req: Request) {
   const body = (await req.json()) as ChatRequestBody;
-  const { messages } = body;
+  const { messages, slug } = body;
 
-  const active = await getActiveBusiness();
+  // Resolve the business. Old single-tenant callers (no slug) fall back to
+  // ACTIVE_BUSINESS_SLUG inside getActiveBusiness(); new embedded clients
+  // send a slug and we look it up explicitly.
+  const active = slug
+    ? await findBusinessBySlug(slug)
+    : await getActiveBusiness();
+
+  if (!active) {
+    return NextResponse.json(
+      { error: `Unknown business slug "${slug}"` },
+      { status: 404 }
+    );
+  }
+
+  // Origin check: cross-origin POSTs from a browser always carry an
+  // Origin header. Same-origin browsers may omit it on POST; fall back
+  // to Referer in that case. We compare against the business's
+  // allowedOrigins list. A miss returns 403 — that's the gate that
+  // protects the chat from being called from an unauthorized site.
+  const origin = req.headers.get("origin") ?? req.headers.get("referer");
+  const matchedOrigin = matchAllowedOrigin(origin, active.allowedOrigins);
+  if (!matchedOrigin) {
+    return NextResponse.json(
+      { error: "Origin not allowed for this business" },
+      { status: 403 }
+    );
+  }
 
   const conversationId = body.id ?? crypto.randomUUID();
   const userAgent = req.headers.get("user-agent") ?? undefined;
@@ -197,5 +226,44 @@ export async function POST(req: Request) {
     conversationId,
   });
 
-  return result.toDataStreamResponse();
+  const response = result.toDataStreamResponse();
+  // Mirror the request's Origin in the CORS response so the browser
+  // accepts the streamed reply. Allow credentials = false (we don't
+  // need cookies). matchedOrigin is the normalized exact origin.
+  response.headers.set("Access-Control-Allow-Origin", matchedOrigin);
+  response.headers.set("Vary", "Origin");
+  return response;
+}
+
+/**
+ * Preflight for cross-origin POSTs. Browsers send OPTIONS before the
+ * actual POST when there's a non-simple header (Content-Type:
+ * application/json counts). We validate the slug + origin the same way
+ * the POST handler does, and return permissive CORS headers if OK.
+ */
+export async function OPTIONS(req: Request) {
+  const url = new URL(req.url);
+  const slug = url.searchParams.get("slug");
+  const reqOrigin = req.headers.get("origin");
+
+  // No slug in preflight (we send it in the body, not the URL). So we
+  // can't validate the business here — we just check Origin against
+  // ANY business's allowlist isn't practical. For simplicity, echo the
+  // Origin back if present. The POST handler is the real gate.
+  const response = new NextResponse(null, { status: 204 });
+  if (reqOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", reqOrigin);
+    response.headers.set("Vary", "Origin");
+  }
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    "POST, OPTIONS"
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "content-type"
+  );
+  response.headers.set("Access-Control-Max-Age", "86400");
+  void slug; // unused in preflight, validated in POST
+  return response;
 }

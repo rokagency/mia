@@ -27,6 +27,8 @@ export type ActiveBusiness = {
   business: BusinessShape;
   /** Approved FAQs for this business. */
   faqs: readonly FaqShape[];
+  /** Origins allowed to embed this business's chat. */
+  allowedOrigins: readonly string[];
 };
 
 function dbToBusinessShape(b: DbBusiness): BusinessShape {
@@ -48,9 +50,10 @@ function dbToFaqShape(f: DbFaq): FaqShape {
   };
 }
 
-export async function getActiveBusiness(): Promise<ActiveBusiness> {
+export async function getActiveBusiness(slug?: string): Promise<ActiveBusiness> {
+  const targetSlug = slug ?? ACTIVE_SLUG;
   const row = await prisma.business.findUnique({
-    where: { slug: ACTIVE_SLUG },
+    where: { slug: targetSlug },
     include: {
       faqs: {
         where: { approved: true },
@@ -61,7 +64,7 @@ export async function getActiveBusiness(): Promise<ActiveBusiness> {
 
   if (!row) {
     throw new Error(
-      `Active business "${ACTIVE_SLUG}" not found in DB. Run \`npm run db:seed\` or set ACTIVE_BUSINESS_SLUG.`
+      `Business "${targetSlug}" not found in DB. Run \`npm run db:seed\` or check the slug.`
     );
   }
 
@@ -70,5 +73,20 @@ export async function getActiveBusiness(): Promise<ActiveBusiness> {
     slug: row.slug,
     business: dbToBusinessShape(row),
     faqs: row.faqs.map(dbToFaqShape),
+    allowedOrigins: row.allowedOrigins,
   };
+}
+
+/**
+ * Like getActiveBusiness but returns null if not found, instead of throwing.
+ * Use this from request handlers that need to render a 404 page on a bad slug.
+ */
+export async function findBusinessBySlug(
+  slug: string
+): Promise<ActiveBusiness | null> {
+  try {
+    return await getActiveBusiness(slug);
+  } catch {
+    return null;
+  }
 }

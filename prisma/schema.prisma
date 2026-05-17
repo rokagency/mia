@@ -122,6 +122,13 @@ model Business {
   // googleMaps, etc. App-layer zod schema validates before write.
   config Json
 
+  // Origins allowed to embed this business's chat. Each entry is an exact
+  // origin (scheme + host + optional port), e.g. "https://example.com".
+  // The literal string "http://localhost:*" matches any localhost port.
+  // Empty array = no one can embed (and direct visits are also blocked,
+  // since direct visits with no Referer fail the check).
+  allowedOrigins String[] @default([])
+
   knowledgeSources KnowledgeSource[]
   documents        Document[]
   faqs             FAQ[]

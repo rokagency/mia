@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mia embed — local test</title>
+    <style>
+      body {
+        font: 16px/1.5 system-ui, sans-serif;
+        max-width: 720px;
+        margin: 4rem auto;
+        padding: 0 1rem;
+        color: #1f2937;
+      }
+      code {
+        background: #f3f4f6;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Mia embed test page</h1>
+    <p>
+      This page exists to test that the floating chat bubble loads and works
+      from <code>http://localhost:PORT</code>. To run it:
+    </p>
+    <pre><code>cd c:\rok\mia\docs
+python -m http.server 8000
+# then open http://localhost:8000/embed-test.html</code></pre>
+    <p>
+      Sof&iacute;a&apos;s <code>allowedOrigins</code> must include
+      <code>http://localhost:*</code> for this to work. Direct visits to
+      <code>https://mia.agenciarok.es/dra-sofia-vazquez</code> will show the
+      &ldquo;access restricted&rdquo; page, because the Referer won&apos;t
+      be in the allowlist.
+    </p>
+    <p>Look bottom-right for the chat bubble &darr;</p>
+
+    <script
+      src="https://mia.agenciarok.es/widget.js"
+      data-slug="dra-sofia-vazquez"
+      async
+    ></script>
+  </body>
+</html>

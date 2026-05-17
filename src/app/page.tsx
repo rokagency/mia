@@ -1,26 +1,13 @@
-import { ChatWindow } from "@/components/chat-window";
-import { getActiveBusiness } from "@/lib/active-business";
+import { redirect } from "next/navigation";
 
-// Force dynamic rendering — this page queries the DB via getActiveBusiness(),
-// which isn't reachable at build time inside the Docker builder.
 export const dynamic = "force-dynamic";
 
 /**
- * Server component: resolves the active business at request time and
- * passes the shape ChatWindow needs as a prop. Keeps the client bundle
- * lean — no business config travels in the JS bundle, only the bits
- * the UI actually displays.
+ * The root URL of mia.agenciarok.es is infrastructure, not a destination.
+ * Every business lives at /[slug] and is meant to be embedded via iframe
+ * on the business's own website. Anything that lands here is either us
+ * during testing or a stray visitor — send them to the agency site.
  */
-export default async function Home() {
-  const { business } = await getActiveBusiness();
-  return (
-    <ChatWindow
-      name={business.name}
-      language={business.language}
-      greeting={business.greeting}
-      quickActions={business.quickActions}
-      branding={business.branding}
-      logoUrl={business.logoUrl}
-    />
-  );
+export default function Home() {
+  redirect("https://agenciarok.es");
 }

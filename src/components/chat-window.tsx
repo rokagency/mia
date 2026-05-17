@@ -14,6 +14,9 @@ import { TypingIndicator } from "./typing-indicator";
  * Page.tsx (server) does the lookup and hands these in.
  */
 type Props = {
+  /** Business slug — sent with every /api/chat call so the backend
+   *  resolves the right tenant. */
+  slug: string;
   name: string;
   language: "es" | "en";
   greeting?: string;
@@ -72,6 +75,7 @@ function getOrCreateConversationId(): string {
 }
 
 export function ChatWindow({
+  slug,
   name,
   language,
   greeting,
@@ -116,6 +120,7 @@ export function ChatWindow({
   } = useChat({
     api: "/api/chat",
     id: conversationId || undefined,
+    body: { slug },
     initialMessages: [
       { id: "welcome", role: "assistant", content: finalGreeting },
     ],
