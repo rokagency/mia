@@ -1,6 +1,10 @@
 import { ChatWindow } from "@/components/chat-window";
 import { getActiveBusiness } from "@/lib/active-business";
 
+// Force dynamic rendering — this page queries the DB via getActiveBusiness(),
+// which isn't reachable at build time inside the Docker builder.
+export const dynamic = "force-dynamic";
+
 /**
  * Server component: resolves the active business at request time and
  * passes the shape ChatWindow needs as a prop. Keeps the client bundle
