@@ -51,6 +51,12 @@ services:
     # from the public internet directly — only through Nginx.
     ports:
       - "127.0.0.1:3000:3000"
+    # Persistent uploads (currently: client logos). Survives container
+    # recreation; lost only if the named volume itself is deleted.
+    # The /api/admin/upload-logo route writes here, /uploads/* serves
+    # from here. See src/lib/uploads.ts for the on-disk layout.
+    volumes:
+      - mia_uploads:/app/uploads
 
   worker:
     build:
@@ -89,3 +95,4 @@ services:
 
 volumes:
   deskia_pgdata:
+  mia_uploads:

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { saveClientAction } from "./actions";
+import { LogoUploader } from "./logo-uploader";
 
 export const dynamic = "force-dynamic";
 
@@ -309,14 +310,12 @@ export default async function EditClientPage({
               className="h-10 w-full rounded-lg border border-neutral-300"
             />
           </Field>
-          <Field label="Logo URL">
-            <input
-              name="logoUrl"
-              defaultValue={logoUrl}
-              placeholder="https://..."
-              className={inputCls}
-            />
-          </Field>
+          <div className="md:col-span-2">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-600">
+              Logo
+            </p>
+            <LogoUploader slug={slug} initialUrl={logoUrl} />
+          </div>
         </Section>
 
         {/* ── Highlighted attributes ───────────────────────────── */}

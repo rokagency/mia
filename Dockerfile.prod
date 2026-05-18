@@ -48,6 +48,12 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/scripts ./scripts
 
+# Mount point for the mia_uploads docker volume. The volume itself
+# is mounted here at runtime by docker-compose; creating the directory
+# in the image just guarantees a sane fallback when running outside
+# compose (e.g. local docker run).
+RUN mkdir -p /app/uploads
+
 EXPOSE 3000
 
 # Default command = web server. Worker overrides via docker-compose.

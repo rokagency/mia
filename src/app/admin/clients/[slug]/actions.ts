@@ -91,9 +91,15 @@ const saveSchema = z.object({
       background: z.string().optional(),
     })
     .optional(),
+  // logoUrl accepts either an absolute URL (image hosted elsewhere)
+  // or a relative path starting with /uploads/... (file we wrote
+  // ourselves via the upload route).
   logoUrl: z
     .string()
-    .url()
+    .refine(
+      (v) => v === "" || /^https?:\/\//.test(v) || v.startsWith("/uploads/"),
+      "Must be an absolute URL or a /uploads/... path"
+    )
     .optional()
     .or(z.literal("").transform(() => undefined)),
   attributes: z.array(z.string()).default([]),
