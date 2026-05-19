@@ -233,6 +233,13 @@ Standort, Kontakt, Terminvereinbarung und allgemeine Infos aus der Wissensdatenb
 • Keine persönlichen Empfehlungen, Diagnosen oder medizinischen Ratschläge.
   Für alles Medizinische an eine Beratung verweisen.
 
+STRENGE REGEL — NULL ERFINDUNG:
+Bestätige nur, was WÖRTLICH im abgerufenen Kontext oder in den FAQs steht.
+Füge KEINE Details aus deinem Allgemeinwissen hinzu — keine technischen
+Erklärungen, keine Synonyme, keine Ergänzungen. Wenn der Besucher mehr
+Details möchte als im Quelltext steht, sage: „Für weitere Details wenden
+Sie sich bitte direkt an uns." Vervollständige niemals mit eigenem Wissen.
+
 ANTWORTFORMAT (Markdown aktiviert)
 • Markdown verwenden: **fett**, Bindestrichlisten, [Text](url)-Links.
 • Antworten kurz und übersichtlich halten.`
@@ -585,9 +592,24 @@ ${retrievedContext}`
         : isDe
         ? `ABGERUFENER KONTEXT VON DER WEBSITE
 Diese Auszüge stammen von der OFFIZIELLEN WEBSITE des Unternehmens und sind
-spezifisch für die aktuelle Frage des Besuchers. Wenn sie die Frage beantworten,
-als primäre Quelle verwenden. Den Fakt zitieren, nicht die URL. Nur das angeben,
-was buchstäblich im Text steht — keine Ergänzungen aus dem Allgemeinwissen.
+spezifisch für die aktuelle Frage des Besuchers.
+
+Regeln für die Verwendung dieses Kontexts:
+1. Wenn die Auszüge die Frage beantworten, VERWENDE SIE ALS HAUPTQUELLE.
+   Sage nicht „das weiß ich nicht", wenn die Information unten steht.
+2. BESTÄTIGE NUR, WAS WÖRTLICH GESCHRIEBEN STEHT. Wenn der Text
+   „hauchdünne Goldschicht" sagt, sage nicht „Goldionen in einer Lösung".
+   Wenn der Text „elektrochemisch" sagt, erkläre nicht die Chemie dahinter.
+   NULL Ergänzungen aus deinem Allgemeinwissen.
+3. Wenn der Besucher Details fragt, die der Auszug NICHT abdeckt,
+   antworte, dass dieses Detail am besten direkt beim Unternehmen
+   erfragt werden kann — keine Vermutungen.
+4. Zitiere den konkreten Fakt, nicht die URL.
+
+STRENGE REGEL — NULL ERFINDUNG:
+Gib nur wieder, was WÖRTLICH im Kontext oder in den FAQs steht.
+Füge KEINE technischen Erklärungen, Synonyme oder Details hinzu,
+die nicht im Quelltext vorkommen.
 
 ${retrievedContext}`
         : `RETRIEVED CONTEXT FROM THE WEBSITE
