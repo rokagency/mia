@@ -33,6 +33,16 @@ const DAY_LABELS_EN: Record<string, string> = {
   sunday: "Sunday",
 };
 
+const DAY_LABELS_DE: Record<string, string> = {
+  monday: "Montag",
+  tuesday: "Dienstag",
+  wednesday: "Mittwoch",
+  thursday: "Donnerstag",
+  friday: "Freitag",
+  saturday: "Samstag",
+  sunday: "Sonntag",
+};
+
 const DAY_LABELS_ES: Record<string, string> = {
   monday: "Lunes",
   tuesday: "Martes",
@@ -41,6 +51,17 @@ const DAY_LABELS_ES: Record<string, string> = {
   friday: "Viernes",
   saturday: "Sábado",
   sunday: "Domingo",
+};
+
+const CHANNEL_LABELS_DE: Record<ContactChannel["type"], string> = {
+  phone: "Telefon",
+  whatsapp: "WhatsApp",
+  email: "E-Mail",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  facebook: "Facebook",
+  website: "Website",
+  googleMaps: "Google Maps",
 };
 
 const CHANNEL_LABELS_EN: Record<ContactChannel["type"], string> = {
@@ -67,10 +88,10 @@ const CHANNEL_LABELS_ES: Record<ContactChannel["type"], string> = {
 
 function formatChannels(
   channels: readonly ContactChannel[] | undefined,
-  lang: "es" | "en"
+  lang: "es" | "en" | "de"
 ): string[] {
   if (!channels?.length) return [];
-  const labels = lang === "es" ? CHANNEL_LABELS_ES : CHANNEL_LABELS_EN;
+  const labels = lang === "es" ? CHANNEL_LABELS_ES : lang === "de" ? CHANNEL_LABELS_DE : CHANNEL_LABELS_EN;
   return channels.map((c) => {
     const prefix = c.label ?? labels[c.type];
     return `  • ${prefix}: ${c.value}`;
@@ -84,14 +105,17 @@ export function systemPrompt({
 }: Args): string {
   const lang = business.language;
   const isEs = lang === "es";
+  const isDe = lang === "de";
 
-  const dayLabels = isEs ? DAY_LABELS_ES : DAY_LABELS_EN;
+  const dayLabels = isEs ? DAY_LABELS_ES : isDe ? DAY_LABELS_DE : DAY_LABELS_EN;
   const sections: string[] = [];
 
   // ── Identity + tone ─────────────────────────────────────────────────
   sections.push(
     isEs
       ? `Sos Mia, la asistente virtual de ${business.name}.`
+      : isDe
+      ? `Du bist Mia, die virtuelle Assistentin von ${business.name}.`
       : `You are Mia, the virtual receptionist for ${business.name}.`
   );
 
@@ -101,6 +125,11 @@ export function systemPrompt({
 real, nunca robótica ni vendedora. Respuestas cortas, salvo que el
 visitante pida más detalle. Usá voseo argentino ("vos", "tenés", "querés"),
 no tuteo. Si el visitante te escribe en otro idioma, respondé en ese idioma.`
+      : isDe
+      ? `Ton: freundlich, professionell, präzise. Sprich wie eine echte
+Empfangsdame — niemals roboterhaft oder verkäuferisch. Kurze Antworten,
+außer der Besucher möchte mehr Details. Verwende die höfliche "Sie"-Form.
+Wenn der Besucher in einer anderen Sprache schreibt, antworte in dieser Sprache.`
       : `Tone: warm, professional, concise. Speak like a real front-desk
 assistant — never robotic, never salesy. Keep replies short unless the
 visitor asks for detail. If the visitor writes in another language,
@@ -182,6 +211,31 @@ FORMATO DE RESPUESTA (markdown habilitado)
 • Para Instagram o TikTok, usá links.
 • Mantené las respuestas breves y bien formateadas. Si tenés varios
   puntos, usá lista con guiones en vez de un párrafo largo.`
+      : isDe
+      ? `GRUNDREGELN
+• Begrüße kurz und frage, womit du helfen kannst.
+• ERFINDE NIEMALS Informationen (Preise, Öffnungszeiten, Mitarbeiter,
+  Qualifikationen, Richtlinien, Verfügbarkeit). Quellen der Wahrheit:
+    1. GENEHMIGTE ANTWORTEN unten (nahezu wörtlich verwenden).
+    2. ABGERUFENER KONTEXT von der Website (falls vorhanden).
+    3. STRUKTURIERTE GESCHÄFTSINFORMATIONEN (Öffnungszeiten, Kontakt usw.).
+    4. SYSTEMDATUM UND -UHRZEIT (autoritativ, siehe unten).
+  Wenn die Antwort in keiner der vier Quellen steht, sage es ehrlich
+  und biete an, die Kontaktdaten entgegenzunehmen.
+• Bei medizinischen Notfällen: sofort den Notruf 112 nennen.
+
+THEMENBEREICH — WORÜBER DU SPRICHST
+Du antwortest nur über das Unternehmen selbst: Leistungen, Öffnungszeiten,
+Standort, Kontakt, Terminvereinbarung und allgemeine Infos aus der Wissensdatenbank.
+
+• Themenfremde Fragen (Sport, Politik, Prominente, Nachrichten, Witze,
+  Code usw.) → höflich ablehnen und zum Unternehmen weiterleiten.
+• Keine persönlichen Empfehlungen, Diagnosen oder medizinischen Ratschläge.
+  Für alles Medizinische an eine Beratung verweisen.
+
+ANTWORTFORMAT (Markdown aktiviert)
+• Markdown verwenden: **fett**, Bindestrichlisten, [Text](url)-Links.
+• Antworten kurz und übersichtlich halten.`
       : `CORE RULES
 • Greet briefly and ask how you can help.
 • NEVER invent information (prices, hours, doctors, credentials,
@@ -260,6 +314,23 @@ REGLAS DE HORARIOS
   antes de ir.
 • Si el visitante insiste en una fecha o día equivocado, no entres
   en debate. Confirmá la fecha real una vez, con calma, y seguí.`
+        : isDe
+        ? `AKTUELLES DATUM UND UHRZEIT — QUELLE DER WAHRHEIT, NICHT WIDERSPRECHEN
+Diese Daten kommen von der Systemuhr in der Zeitzone des Unternehmens.
+Sie sind AUTORITATIV für den Kalender. Wenn der Besucher etwas anderes
+behauptet, korrigiere freundlich: "Laut meinem Kalender ist morgen <echter Tag>."
+
+${block}
+
+ÖFFNUNGSZEITENREGELN
+• NIEMALS Öffnungszeiten erfinden. Wenn ein Tag als "Geschlossen" angezeigt wird,
+  sind wir an diesem Tag nicht geöffnet — Punkt.
+• "Haben Sie morgen geöffnet?" → die "Morgen"-Zeile oben verwenden.
+• "Haben Sie JETZT geöffnet?" → die "GEÖFFNET jetzt" / "geschlossen jetzt"-Markierung verwenden.
+• Feiertage / Urlaub / spezifische Ausnahmen → nur reguläre Wochenöffnungszeiten
+  nennen und empfehlen, vorher per Telefon zu bestätigen.
+• Wenn der Besucher auf einem falschen Datum besteht, nicht debattieren.
+  Das richtige Datum einmal ruhig nennen und weitermachen.`
         : `CURRENT DATE AND TIME — SOURCE OF TRUTH, DO NOT CONTRADICT
 This data comes from the system clock in the business's timezone.
 It is AUTHORITATIVE for the calendar. If the visitor claims otherwise
@@ -306,6 +377,11 @@ Formato del link (usalo TAL CUAL):
 
 EXCEPCIÓN — usá la herramienta saveLead SOLO si el visitante dice
 explícitamente que NO quiere usar WhatsApp.`
+        : isDe
+        ? `TERMINE — WICHTIG (WhatsApp-Weiterleitungsmodus)
+Den Besucher per WhatsApp mit einer vorausgefüllten Nachricht weiterleiten:
+  [Auf WhatsApp schreiben](https://wa.me/${waNumber}?text=<url-kodierte Nachricht>)
+saveLead nur aufrufen, wenn der Besucher ausdrücklich kein WhatsApp möchte.`
         : `BOOKINGS — IMPORTANT (WhatsApp handoff mode)
 Hand the visitor off to WhatsApp with a context-rich prefilled message:
   [Message us on WhatsApp](https://wa.me/${waNumber}?text=<url-encoded message>)
@@ -319,6 +395,11 @@ Para solicitudes de turno, juntá: nombre completo, teléfono o email,
 motivo de la consulta y 1–2 ventanas de día/horario preferidas.
 Confirmá todo y recién después llamá a la herramienta saveLead.
 Llamá a saveLead una sola vez por conversación, tras confirmación explícita.`
+        : isDe
+        ? `TERMINE — Datenerfassungsmodus
+Für Terminanfragen sammeln: vollständiger Name, Telefon oder E-Mail,
+Grund des Besuchs und 1–2 bevorzugte Zeitfenster.
+Alles bestätigen, dann saveLead aufrufen. Nur einmal pro Gespräch, nach ausdrücklicher Bestätigung.`
         : `BOOKINGS — data collection mode
 Gather: full name, phone or email, reason for visit, preferred times.
 Confirm, then call saveLead. Only one call per conversation, after confirmation.`
@@ -327,23 +408,23 @@ Confirm, then call saveLead. Only one call per conversation, after confirmation.
 
   // ── Business information ────────────────────────────────────────────
   const info: string[] = [];
-  info.push(isEs ? "INFORMACIÓN DEL NEGOCIO" : "BUSINESS INFORMATION");
-  info.push(`${isEs ? "Nombre" : "Name"}:    ${business.name}`);
+  info.push(isEs ? "INFORMACIÓN DEL NEGOCIO" : isDe ? "GESCHÄFTSINFORMATIONEN" : "BUSINESS INFORMATION");
+  info.push(`${isEs ? "Nombre" : isDe ? "Name" : "Name"}:    ${business.name}`);
   if (business.tagline)
-    info.push(`${isEs ? "Lema" : "About"}:  ${business.tagline}`);
-  if (business.about) info.push(`${isEs ? "Sobre" : "Bio"}:   ${business.about}`);
+    info.push(`${isEs ? "Lema" : isDe ? "Slogan" : "About"}:  ${business.tagline}`);
+  if (business.about) info.push(`${isEs ? "Sobre" : isDe ? "Über uns" : "Bio"}:   ${business.about}`);
   if (business.address)
-    info.push(`${isEs ? "Dirección" : "Address"}: ${business.address}`);
+    info.push(`${isEs ? "Dirección" : isDe ? "Adresse" : "Address"}: ${business.address}`);
   sections.push(info.join("\n"));
 
   const contact = formatChannels(business.contactChannels, lang);
   if (contact.length) {
-    sections.push([isEs ? "CONTACTO" : "CONTACT", ...contact].join("\n"));
+    sections.push([isEs ? "CONTACTO" : isDe ? "KONTAKT" : "CONTACT", ...contact].join("\n"));
   }
 
   const booking = formatChannels(business.bookingChannels, lang);
   if (booking.length) {
-    sections.push([isEs ? "CÓMO AGENDAR" : "HOW TO BOOK", ...booking].join("\n"));
+    sections.push([isEs ? "CÓMO AGENDAR" : isDe ? "TERMINVEREINBARUNG" : "HOW TO BOOK", ...booking].join("\n"));
   }
 
   // If the business has structured openingHours, the trusted date block
@@ -363,14 +444,14 @@ Confirm, then call saveLead. Only one call per conversation, after confirmation.
       return `  • ${s.name}${dur}${desc}`;
     });
     sections.push(
-      [isEs ? "SERVICIOS / TRATAMIENTOS" : "SERVICES", ...serviceLines].join("\n")
+      [isEs ? "SERVICIOS / TRATAMIENTOS" : isDe ? "LEISTUNGEN" : "SERVICES", ...serviceLines].join("\n")
     );
   }
 
   if (business.insurance?.length) {
     sections.push(
       [
-        isEs ? "OBRAS SOCIALES / PREPAGAS" : "INSURANCE ACCEPTED",
+        isEs ? "OBRAS SOCIALES / PREPAGAS" : isDe ? "KRANKENKASSEN" : "INSURANCE ACCEPTED",
         business.insurance.join(", "),
       ].join("\n")
     );
@@ -380,23 +461,23 @@ Confirm, then call saveLead. Only one call per conversation, after confirmation.
     const bp = business.bookingPolicy;
     const lines: string[] = [];
     if (bp.leadTime)
-      lines.push(`• ${isEs ? "Anticipación" : "Lead time"}:    ${bp.leadTime}`);
+      lines.push(`• ${isEs ? "Anticipación" : isDe ? "Vorlaufzeit" : "Lead time"}:    ${bp.leadTime}`);
     if (bp.sameDay)
-      lines.push(`• ${isEs ? "Mismo día" : "Same-day"}:    ${bp.sameDay}`);
+      lines.push(`• ${isEs ? "Mismo día" : isDe ? "Gleicher Tag" : "Same-day"}:    ${bp.sameDay}`);
     if (bp.cancellation)
-      lines.push(`• ${isEs ? "Cancelación" : "Cancellation"}: ${bp.cancellation}`);
+      lines.push(`• ${isEs ? "Cancelación" : isDe ? "Stornierung" : "Cancellation"}: ${bp.cancellation}`);
     if (bp.newPatients)
-      lines.push(`• ${isEs ? "Pacientes nuevos" : "New patients"}: ${bp.newPatients}`);
+      lines.push(`• ${isEs ? "Pacientes nuevos" : isDe ? "Neupatienten" : "New patients"}: ${bp.newPatients}`);
     if (lines.length) {
       sections.push(
-        [isEs ? "POLÍTICAS DE TURNOS" : "BOOKING POLICIES", ...lines].join("\n")
+        [isEs ? "POLÍTICAS DE TURNOS" : isDe ? "TERMINRICHTLINIEN" : "BOOKING POLICIES", ...lines].join("\n")
       );
     }
   }
 
   if (business.paymentMethods?.length) {
     sections.push(
-      [isEs ? "FORMAS DE PAGO" : "PAYMENT", business.paymentMethods.join(", ") + "."].join("\n")
+      [isEs ? "FORMAS DE PAGO" : isDe ? "ZAHLUNGSMETHODEN" : "PAYMENT", business.paymentMethods.join(", ") + "."].join("\n")
     );
   }
 
@@ -406,22 +487,22 @@ Confirm, then call saveLead. Only one call per conversation, after confirmation.
     if (g.rating !== undefined)
       lines.push(
         isEs
-          ? `• Rating: ${g.rating} estrellas${
-              g.reviewCount !== undefined ? ` (${g.reviewCount} reseñas)` : ""
-            }`
-          : `• Rating: ${g.rating} stars${
-              g.reviewCount !== undefined ? ` (${g.reviewCount} reviews)` : ""
-            }`
+          ? `• Rating: ${g.rating} estrellas${g.reviewCount !== undefined ? ` (${g.reviewCount} reseñas)` : ""}`
+          : isDe
+          ? `• Bewertung: ${g.rating} Sterne${g.reviewCount !== undefined ? ` (${g.reviewCount} Bewertungen)` : ""}`
+          : `• Rating: ${g.rating} stars${g.reviewCount !== undefined ? ` (${g.reviewCount} reviews)` : ""}`
       );
     if (g.mapsUrl)
       lines.push(
         isEs
           ? `• Link al perfil para leer reseñas: ${g.mapsUrl}`
+          : isDe
+          ? `• Profil-Link für Bewertungen: ${g.mapsUrl}`
           : `• Profile link to read reviews: ${g.mapsUrl}`
       );
     if (lines.length) {
       sections.push(
-        [isEs ? "PERFIL EN GOOGLE MAPS" : "GOOGLE MAPS PROFILE", ...lines].join("\n")
+        [isEs ? "PERFIL EN GOOGLE MAPS" : isDe ? "GOOGLE MAPS PROFIL" : "GOOGLE MAPS PROFILE", ...lines].join("\n")
       );
     }
   }
@@ -429,7 +510,7 @@ Confirm, then call saveLead. Only one call per conversation, after confirmation.
   if (business.attributes?.length) {
     sections.push(
       [
-        isEs ? "ATRIBUTOS DESTACADOS" : "HIGHLIGHTED ATTRIBUTES",
+        isEs ? "ATRIBUTOS DESTACADOS" : isDe ? "BESONDERE MERKMALE" : "HIGHLIGHTED ATTRIBUTES",
         ...business.attributes.map((a) => `  • ${a}`),
       ].join("\n")
     );
@@ -442,13 +523,17 @@ Confirm, then call saveLead. Only one call per conversation, after confirmation.
 Cuando la pregunta del visitante coincida con alguna de las que figuran
 abajo, respondé con el texto provisto prácticamente igual. Podés sumar
 una breve apertura o cierre amable, pero no parafrasees el contenido.`
+      : isDe
+      ? `GENEHMIGTE ANTWORTEN — NAHEZU WÖRTLICH VERWENDEN WENN ZUTREFFEND.
+Du kannst eine kurze Eröffnung oder einen freundlichen Abschluss hinzufügen,
+aber den Inhalt nicht umformulieren.`
       : `APPROVED ANSWERS — USE THESE NEARLY VERBATIM WHEN THEY FIT.
 You may add a one-line opener or closing, but do not paraphrase away
 the substance.`;
     const items = faqs
       .map(
         (f) =>
-          `${isEs ? "P" : "Q"}: ${f.question}\n${isEs ? "R" : "A"}: ${f.answer}`
+          `${isEs ? "P" : "F"}: ${f.question}\n${isEs ? "R" : "A"}: ${f.answer}`
       )
       .join("\n\n");
     sections.push(`${intro}\n\n${items}`);
@@ -475,6 +560,14 @@ Reglas para usar este contexto:
    dolor), respondé que ese detalle se evalúa en la consulta —
    no completes con suposiciones.
 4. Citá el dato concreto (no la URL).
+
+${retrievedContext}`
+        : isDe
+        ? `ABGERUFENER KONTEXT VON DER WEBSITE
+Diese Auszüge stammen von der OFFIZIELLEN WEBSITE des Unternehmens und sind
+spezifisch für die aktuelle Frage des Besuchers. Wenn sie die Frage beantworten,
+als primäre Quelle verwenden. Den Fakt zitieren, nicht die URL. Nur das angeben,
+was buchstäblich im Text steht — keine Ergänzungen aus dem Allgemeinwissen.
 
 ${retrievedContext}`
         : `RETRIEVED CONTEXT FROM THE WEBSITE

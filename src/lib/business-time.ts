@@ -48,6 +48,16 @@ const DAY_LABELS_EN: Record<DayKey, string> = {
   sunday: "Sunday",
 };
 
+const DAY_LABELS_DE: Record<DayKey, string> = {
+  monday: "Montag",
+  tuesday: "Dienstag",
+  wednesday: "Mittwoch",
+  thursday: "Donnerstag",
+  friday: "Freitag",
+  saturday: "Samstag",
+  sunday: "Sonntag",
+};
+
 export type DayContext = {
   /** Date in ISO YYYY-MM-DD form, in the business timezone. */
   dateISO: string;
@@ -133,12 +143,12 @@ function dayKeyFromISO(iso: string): DayKey {
 /** Long human label for a date, localized + tz-aware. */
 function longDateLabel(
   iso: string,
-  language: "es" | "en",
+  language: "es" | "en" | "de",
   timezone: string
 ): string {
   const [y, m, d] = iso.split("-").map(Number);
   const noonUTC = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-  return new Intl.DateTimeFormat(language === "es" ? "es-AR" : "en-US", {
+  return new Intl.DateTimeFormat(language === "es" ? "es-AR" : language === "de" ? "de-DE" : "en-US", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -154,7 +164,7 @@ function isOpenAt(timeHHmm: string, ranges: readonly TimeRange[]): boolean {
 export function computeBusinessTimeContext(
   openingHours: OpeningHours,
   timezone: string,
-  language: "es" | "en",
+  language: "es" | "en" | "de",
   instant: Date = new Date()
 ): BusinessTimeContext {
   const parts = getZonedParts(instant, timezone);
@@ -162,7 +172,7 @@ export function computeBusinessTimeContext(
   const tomorrowISO = addOneDayISO(todayISO);
   const todayKey = dayKeyFromISO(todayISO);
   const tomorrowKey = dayKeyFromISO(tomorrowISO);
-  const labels = language === "es" ? DAY_LABELS_ES : DAY_LABELS_EN;
+  const labels = language === "es" ? DAY_LABELS_ES : language === "de" ? DAY_LABELS_DE : DAY_LABELS_EN;
   const currentHHmm = `${parts.hour}:${parts.minute}`;
 
   const todayHours = openingHours[todayKey] ?? [];
@@ -193,9 +203,9 @@ export function computeBusinessTimeContext(
 
 function formatRanges(
   ranges: readonly TimeRange[],
-  language: "es" | "en"
+  language: "es" | "en" | "de"
 ): string {
-  if (ranges.length === 0) return language === "es" ? "Cerrado" : "Closed";
+  if (ranges.length === 0) return language === "es" ? "Cerrado" : language === "de" ? "Geschlossen" : "Closed";
   return ranges.map((r) => `${r.open}–${r.close}`).join(", ");
 }
 
@@ -212,31 +222,34 @@ function formatRanges(
 export function formatBusinessTimeForPrompt(
   ctx: BusinessTimeContext,
   openingHours: OpeningHours,
-  language: "es" | "en"
+  language: "es" | "en" | "de"
 ): string {
   const isEs = language === "es";
-  const labels = isEs ? DAY_LABELS_ES : DAY_LABELS_EN;
+  const isDe = language === "de";
+  const labels = isEs ? DAY_LABELS_ES : isDe ? DAY_LABELS_DE : DAY_LABELS_EN;
 
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   const openMark = ctx.isOpenNow
-    ? isEs
-      ? " (ABIERTO ahora)"
-      : " (OPEN now)"
-    : isEs
-      ? " (cerrado ahora)"
-      : " (closed now)";
+    ? isEs ? " (ABIERTO ahora)" : isDe ? " (JETZT GEÖFFNET)" : " (OPEN now)"
+    : isEs ? " (cerrado ahora)" : isDe ? " (jetzt geschlossen)" : " (closed now)";
 
   const todayLine = isEs
     ? `Hoy:     ${cap(ctx.today.longLabel)} — ${formatRanges(ctx.today.hours, language)}${openMark}`
+    : isDe
+    ? `Heute:   ${cap(ctx.today.longLabel)} — ${formatRanges(ctx.today.hours, language)}${openMark}`
     : `Today:    ${cap(ctx.today.longLabel)} — ${formatRanges(ctx.today.hours, language)}${openMark}`;
 
   const tomorrowLine = isEs
     ? `Mañana:  ${cap(ctx.tomorrow.longLabel)} — ${formatRanges(ctx.tomorrow.hours, language)}`
+    : isDe
+    ? `Morgen:  ${cap(ctx.tomorrow.longLabel)} — ${formatRanges(ctx.tomorrow.hours, language)}`
     : `Tomorrow: ${cap(ctx.tomorrow.longLabel)} — ${formatRanges(ctx.tomorrow.hours, language)}`;
 
   const nowLine = isEs
     ? `Hora actual (${ctx.timezone}): ${ctx.currentHHmm}`
+    : isDe
+    ? `Aktuelle Uhrzeit (${ctx.timezone}): ${ctx.currentHHmm}`
     : `Current time (${ctx.timezone}): ${ctx.currentHHmm}`;
 
   const weekLines = ORDERED_DAYS.map((d) => {
@@ -248,9 +261,7 @@ export function formatBusinessTimeForPrompt(
     tomorrowLine,
     nowLine,
     "",
-    isEs
-      ? "HORARIOS REGULARES (semana completa)"
-      : "REGULAR HOURS (full week)",
+    isEs ? "HORARIOS REGULARES (semana completa)" : isDe ? "REGULÄRE ÖFFNUNGSZEITEN (ganze Woche)" : "REGULAR HOURS (full week)",
     ...weekLines,
   ].join("\n");
 }

@@ -3,16 +3,19 @@ import { findBusinessBySlug } from "@/lib/active-business";
 
 export const dynamic = "force-dynamic";
 
-const TITLES = {
+const TITLES: Record<string, (name: string) => string> = {
   es: (name: string) => `${name} — Mesa de entrada`,
   en: (name: string) => `${name} — Front Desk`,
+  de: (name: string) => `${name} — Empfang`,
 };
 
-const DESCRIPTIONS = {
+const DESCRIPTIONS: Record<string, (name: string) => string> = {
   es: (name: string) =>
     `Hablá con Mia, la asistente virtual de ${name}, sobre turnos, tratamientos y consultas.`,
   en: (name: string) =>
     `Talk to Mia, the virtual receptionist for ${name}, about hours, services, and booking.`,
+  de: (name: string) =>
+    `Sprechen Sie mit Mia, der virtuellen Assistentin von ${name}, über Öffnungszeiten, Leistungen und Termine.`,
 };
 
 export async function generateMetadata({

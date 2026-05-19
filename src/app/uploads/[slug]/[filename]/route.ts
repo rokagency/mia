@@ -61,9 +61,7 @@ export async function GET(
   // read, with no ArrayBufferLike type-mismatch when constructing
   // the Response body. Slicing the Buffer's underlying ArrayBuffer
   // produces a Uint8Array which Response accepts unambiguously.
-  const body = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
-
-  return new NextResponse(body, {
+  return new NextResponse(buf.buffer as ArrayBuffer, {
     status: 200,
     headers: {
       "Content-Type": mime,

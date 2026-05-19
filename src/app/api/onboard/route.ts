@@ -38,7 +38,7 @@ const onboardSchema = z.object({
   name: z.string().min(2).max(120),
   websiteUrl: z.string().url(),
   industry: z.string().max(40).optional(),
-  language: z.enum(["es", "en"]).default("es"),
+  language: z.enum(["es", "en", "de"]).default("es"),
   bookingMode: z
     .enum(["whatsapp_handoff", "data_collection", "calendar_integration"])
     .default("data_collection"),

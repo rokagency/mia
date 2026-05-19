@@ -184,7 +184,7 @@ export type Business = {
   name: string;
 
   /** BCP-47-ish primary language Mia replies in by default. */
-  language: "es" | "en";
+  language: "es" | "en" | "de";
 
   /** How the business takes bookings; defaults to `data_collection` if absent. */
   bookingMode?: BookingMode;

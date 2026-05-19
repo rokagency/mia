@@ -132,6 +132,7 @@ export default async function EditClientPage({
             >
               <option value="es">Español</option>
               <option value="en">English</option>
+              <option value="de">Deutsch</option>
             </select>
           </Field>
           <Field label="Booking mode">

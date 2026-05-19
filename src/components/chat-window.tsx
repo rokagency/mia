@@ -18,7 +18,7 @@ type Props = {
    *  resolves the right tenant. */
   slug: string;
   name: string;
-  language: "es" | "en";
+  language: "es" | "en" | "de";
   greeting?: string;
   quickActions?: readonly QuickAction[];
   branding?: BusinessBranding;
@@ -29,7 +29,7 @@ type Props = {
   privacyPolicyUrl?: string;
 };
 
-const PRIVACY_COPY = {
+const PRIVACY_COPY: Record<string, { prefix: string; link: string }> = {
   es: {
     prefix: "Al chatear con nosotros, aceptás nuestra ",
     link: "Política de Privacidad",
@@ -38,13 +38,19 @@ const PRIVACY_COPY = {
     prefix: "By chatting with us, you agree to our ",
     link: "Privacy Policy",
   },
+  de: {
+    prefix: "Durch das Chatten stimmen Sie unserer ",
+    link: "Datenschutzrichtlinie",
+  },
 };
 
-const DEFAULT_GREETINGS = {
+const DEFAULT_GREETINGS: Record<string, (name: string) => string> = {
   es: (name: string) =>
     `Hola, gracias por escribirnos a ${name}. Soy Mia, la asistente virtual. ¿En qué te puedo ayudar?`,
   en: (name: string) =>
     `Hi, thanks for reaching out to ${name} — I'm Mia, the virtual receptionist. How can I help you today?`,
+  de: (name: string) =>
+    `Hallo, danke für Ihre Nachricht an ${name}. Ich bin Mia, die virtuelle Assistentin. Wie kann ich Ihnen helfen?`,
 };
 
 const GREETING_EMOJI = " 👋";
@@ -64,14 +70,16 @@ function withGreetingEmoji(greeting: string): string {
   return `${trimmed}${GREETING_EMOJI}`;
 }
 
-const STATUS_LINE = {
+const STATUS_LINE: Record<string, string> = {
   es: "Asistente virtual · responde enseguida",
   en: "Virtual assistant · replies instantly",
+  de: "Virtuelle Assistentin · antwortet sofort",
 };
 
-const PLACEHOLDER = {
+const PLACEHOLDER: Record<string, string> = {
   es: "Escribí tu pregunta…",
   en: "Type your question…",
+  de: "Ihre Frage eingeben…",
 };
 
 const CONV_STORAGE_KEY = "deskia.conversationId";

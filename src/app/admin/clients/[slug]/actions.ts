@@ -63,7 +63,7 @@ const channelSchema = z.object({
 const saveSchema = z.object({
   // Business columns
   name: z.string().min(1).max(120),
-  language: z.enum(["es", "en"]),
+  language: z.enum(["es", "en", "de"]),
   bookingMode: z.enum([
     "whatsapp_handoff",
     "data_collection",
