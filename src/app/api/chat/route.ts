@@ -229,7 +229,6 @@ export async function POST(req: Request) {
     ? await searchChunks(active.id, userText, {
         language: active.business.language,
         limit: 3,
-        minScore: 0.01,
       }).catch((err) => {
         console.error("Retrieval failed:", err);
         return [];

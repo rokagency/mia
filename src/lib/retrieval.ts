@@ -71,14 +71,13 @@ function buildOrQuery(input: string): string {
 export async function searchChunks(
   businessId: string,
   query: string,
-  options: { language?: string; limit?: number; minScore?: number } = {}
+  options: { language?: string; limit?: number } = {}
 ): Promise<RetrievedChunk[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
   const dict = dictFor(options.language ?? "es");
   const limit = options.limit ?? DEFAULT_LIMIT;
-  const minScore = options.minScore ?? 0.01;
 
   const orQuery = buildOrQuery(trimmed);
   if (!orQuery) return [];
@@ -109,15 +108,13 @@ export async function searchChunks(
     businessId
   );
 
-  return rows
-    .map((r) => ({
-      text: r.text,
-      pageType: r.pageType,
-      url: r.url,
-      title: r.title,
-      score: Number(r.score),
-    }))
-    .filter((r) => r.score >= minScore);
+  return rows.map((r) => ({
+    text: r.text,
+    pageType: r.pageType,
+    url: r.url,
+    title: r.title,
+    score: Number(r.score),
+  }));
 }
 
 /**
