@@ -110,6 +110,44 @@ export function systemPrompt({
   const dayLabels = isEs ? DAY_LABELS_ES : isDe ? DAY_LABELS_DE : DAY_LABELS_EN;
   const sections: string[] = [];
 
+  // ── Retrieved context FIRST — pins the model before general knowledge ──
+  // Placing this at the top means the model reads the actual source text
+  // before any instructions, making it much harder to switch into
+  // "educational mode" from pretrained knowledge.
+  if (retrievedContext && retrievedContext.trim().length > 0) {
+    sections.push(
+      isEs
+        ? `=== FUENTE AUTORIZADA — SOLO USÁ ESTA INFORMACIÓN ===
+Los siguientes extractos son la ÚNICA fuente que podés usar para responder.
+NO uses conocimiento general. NO expliques más de lo que dice el texto.
+NO agregues pasos, procesos, ni detalles que no estén escritos abajo.
+Si el visitante pregunta algo que no está en estos extractos, decí que
+no tenés ese dato y ofrecé que lo consulte directamente con el negocio.
+
+${retrievedContext}
+=== FIN DE LA FUENTE AUTORIZADA ===`
+        : isDe
+        ? `=== AUTORISIERTE QUELLE — NUR DIESE INFORMATION VERWENDEN ===
+Die folgenden Auszüge sind die EINZIGE Quelle, die du verwenden darfst.
+KEIN Allgemeinwissen. KEINE Erklärungen über das hinaus, was im Text steht.
+KEINE Schritte, Prozesse oder Details, die unten nicht geschrieben stehen.
+Wenn der Besucher etwas fragt, das nicht in diesen Auszügen steht, sage,
+dass du diese Information nicht hast, und empfehle, das Unternehmen direkt zu kontaktieren.
+
+${retrievedContext}
+=== ENDE DER AUTORISIERTEN QUELLE ===`
+        : `=== AUTHORISED SOURCE — USE ONLY THIS INFORMATION ===
+The following excerpts are the ONLY source you may use to answer.
+NO general knowledge. NO explanations beyond what the text says.
+NO steps, processes, or details not written below.
+If the visitor asks something not covered by these excerpts, say you
+don't have that information and suggest they contact the business directly.
+
+${retrievedContext}
+=== END OF AUTHORISED SOURCE ===`
+    );
+  }
+
   // ── Identity + tone ─────────────────────────────────────────────────
   sections.push(
     isEs
@@ -566,7 +604,7 @@ the substance.`;
     sections.push(`${intro}\n\n${items}`);
   }
 
-  // ── Retrieved context (per-turn, from the website index) ────────────
+  // ── Retrieved context reminder at the end (reinforces the top block) ──
   if (retrievedContext && retrievedContext.trim().length > 0) {
     sections.push(
       isEs
