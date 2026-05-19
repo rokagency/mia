@@ -36,7 +36,7 @@ function dbToBusinessShape(b: DbBusiness): BusinessShape {
   return {
     ...config,
     name: b.name,
-    language: (b.language as "es" | "en") ?? "es",
+    language: (b.language as "es" | "en" | "de") ?? "es",
     bookingMode: (b.bookingMode as BusinessShape["bookingMode"]) ?? "data_collection",
   } as BusinessShape;
 }

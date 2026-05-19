@@ -67,6 +67,7 @@ export default async function EditClientPage({
   const attributes = (cfg.attributes as string[]) ?? [];
   const googleMaps = (cfg.googleMaps as Record<string, unknown>) ?? {};
   const whatsappHandoff = (cfg.whatsappHandoff as { number?: string }) ?? {};
+  const ctaUrl = (cfg.ctaUrl as string) ?? "";
 
   // Bind slug into the action.
   const saveAction = async (formData: FormData) => {
@@ -143,6 +144,7 @@ export default async function EditClientPage({
             >
               <option value="whatsapp_handoff">WhatsApp handoff</option>
               <option value="data_collection">Data collection</option>
+              <option value="cta_url">CTA URL (contact/booking page)</option>
               <option value="calendar_integration">
                 Calendar integration (not implemented)
               </option>
@@ -150,12 +152,23 @@ export default async function EditClientPage({
           </Field>
           <Field
             label="WhatsApp handoff number"
-            hint="International digits only, no '+' or spaces. e.g. 5491134567890. Used for wa.me deep links."
+            hint="International digits only, no '+' or spaces. e.g. 5491134567890. Used when booking mode is WhatsApp handoff."
           >
             <input
               name="whatsappHandoffNumber"
               defaultValue={whatsappHandoff.number ?? ""}
               placeholder="5491134567890"
+              className={inputCls}
+            />
+          </Field>
+          <Field
+            label="CTA URL"
+            hint="Full URL of the contact or booking page. Used when booking mode is 'CTA URL'."
+          >
+            <input
+              name="ctaUrl"
+              defaultValue={ctaUrl}
+              placeholder="https://example.com/contact"
               className={inputCls}
             />
           </Field>
@@ -394,6 +407,52 @@ export default async function EditClientPage({
           </div>
         </div>
       </form>
+
+      {/* ── Embed snippet ────────────────────────────────────── */}
+      <section className="mt-8 rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 className="text-base font-semibold">Embed widget</h2>
+        <p className="mt-0.5 text-xs text-neutral-500">
+          Copy and paste this snippet just before the closing{" "}
+          <code>&lt;/body&gt;</code> tag on the client&apos;s website.
+        </p>
+        <pre className="mt-3 overflow-x-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-xs leading-relaxed">
+{`<script>
+  window.MIA_SLUG = "${b.slug}";
+</script>
+<script src="https://mia.agenciarok.es/widget.js" defer></script>`}
+        </pre>
+        <p className="mt-2 text-xs text-neutral-500">
+          Make sure <strong>https://</strong>{b.websiteUrl?.replace(/^https?:\/\//, "").split("/")[0] ?? "the client domain"}{" "}
+          is listed in Allowed origins above, otherwise the widget will be blocked.
+        </p>
+      </section>
+
+      {/* ── Live preview ─────────────────────────────────────── */}
+      <section className="mt-4 rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 className="text-base font-semibold">Live preview</h2>
+        <p className="mt-0.5 text-xs text-neutral-500">
+          Chat with Mia as a visitor would. Opens in a new tab so you can
+          test the full experience without leaving this page.
+        </p>
+        <div className="mt-3 flex gap-3">
+          <a
+            href={`/${b.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            Open chat page →
+          </a>
+          <a
+            href={`/admin/clients/${b.slug}/preview`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+          >
+            Open embedded preview →
+          </a>
+        </div>
+      </section>
     </div>
   );
 }

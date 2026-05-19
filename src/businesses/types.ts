@@ -132,7 +132,8 @@ export type GoogleMapsProfile = {
 export type BookingMode =
   | "whatsapp_handoff"
   | "data_collection"
-  | "calendar_integration";
+  | "calendar_integration"
+  | "cta_url";
 
 /** Required when bookingMode is "whatsapp_handoff". */
 export type WhatsAppHandoff = {
@@ -191,6 +192,9 @@ export type Business = {
 
   /** Required when bookingMode is "whatsapp_handoff". */
   whatsappHandoff?: WhatsAppHandoff;
+
+  /** Required when bookingMode is "cta_url". URL of the booking/contact page. */
+  ctaUrl?: string;
 
   /** Short tagline, one sentence. */
   tagline?: string;

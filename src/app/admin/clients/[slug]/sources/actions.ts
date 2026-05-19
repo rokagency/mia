@@ -26,6 +26,39 @@ export async function reindexAction(slug: string, sourceId: string) {
   revalidatePath(`/admin/clients/${slug}/jobs`);
 }
 
+export async function bulkAddSourcesAction(slug: string, fd: FormData) {
+  const raw = String(fd.get("urls") ?? "");
+  const urls = raw
+    .split(/[\n,]+/)
+    .map((u) => u.trim())
+    .filter((u) => {
+      try { new URL(u); return true; } catch { return false; }
+    });
+  if (urls.length === 0) return;
+  const business = await prisma.business.findUnique({
+    where: { slug },
+    select: { id: true },
+  });
+  if (!business) throw new Error("Business not found");
+  for (const url of urls) {
+    const source = await prisma.knowledgeSource.create({
+      data: {
+        businessId: business.id,
+        url,
+        kind: "page",
+        maxPages: 1,
+        maxDepth: 1,
+        status: "active",
+      },
+    });
+    await prisma.ingestJob.create({
+      data: { sourceId: source.id, status: "pending", driver: "ts-fetch" },
+    });
+  }
+  revalidatePath(`/admin/clients/${slug}/sources`);
+  revalidatePath(`/admin/clients/${slug}/jobs`);
+}
+
 export async function createSourceAction(slug: string, fd: FormData) {
   const url = String(fd.get("url") ?? "").trim();
   const kind = String(fd.get("kind") ?? "sitemap").trim();

@@ -93,6 +93,7 @@ export default function NewClientPage() {
           <select name="bookingMode" defaultValue="whatsapp_handoff" className={inputCls}>
             <option value="whatsapp_handoff">WhatsApp handoff</option>
             <option value="data_collection">Data collection</option>
+            <option value="cta_url">CTA URL (contact/booking page)</option>
           </select>
         </Field>
 
@@ -103,6 +104,20 @@ export default function NewClientPage() {
           <input
             name="whatsapp"
             placeholder="5491134567890"
+            className={inputCls}
+          />
+        </Field>
+
+        <Field
+          label="Max pages to crawl"
+          hint="How many pages to crawl from the website. More pages = better knowledge but slower onboarding (5–200)."
+        >
+          <input
+            name="maxPages"
+            type="number"
+            min={5}
+            max={200}
+            defaultValue={50}
             className={inputCls}
           />
         </Field>
@@ -132,8 +147,8 @@ export default function NewClientPage() {
 
         {isPending && (
           <p className="text-xs text-neutral-500">
-            Crawling up to 20 pages and extracting business info with AI.
-            This takes about 15–30 seconds…
+            Crawling the website and extracting business info with AI.
+            This can take 30–90 seconds depending on the number of pages…
           </p>
         )}
       </form>

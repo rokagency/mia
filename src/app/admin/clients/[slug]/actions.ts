@@ -68,6 +68,7 @@ const saveSchema = z.object({
     "whatsapp_handoff",
     "data_collection",
     "calendar_integration",
+    "cta_url",
   ]),
   websiteUrl: z.string().url().optional().or(z.literal("").transform(() => undefined)),
   allowedOrigins: z.array(z.string()).default([]),
@@ -84,6 +85,11 @@ const saveSchema = z.object({
   contactChannels: z.array(channelSchema).default([]),
   bookingChannels: z.array(channelSchema).default([]),
   whatsappHandoffNumber: z.string().optional(),
+  ctaUrl: z
+    .string()
+    .url()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   branding: z
     .object({
       primary: z.string().optional(),
@@ -133,6 +139,7 @@ function parseForm(fd: FormData): unknown {
     "timezone",
     "privacyPolicyUrl",
     "whatsappHandoffNumber",
+    "ctaUrl",
     "logoUrl",
   ]) {
     const v = fd.get(k);
@@ -250,6 +257,7 @@ export async function saveClientAction(slug: string, fd: FormData) {
   configUpdates.bookingChannels = v.bookingChannels;
   if (v.whatsappHandoffNumber)
     configUpdates.whatsappHandoff = { number: v.whatsappHandoffNumber };
+  if (v.ctaUrl !== undefined) configUpdates.ctaUrl = v.ctaUrl || undefined;
   if (v.branding) {
     const cleaned: Record<string, string> = {};
     if (v.branding.primary) cleaned.primary = v.branding.primary;

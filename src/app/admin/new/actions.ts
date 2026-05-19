@@ -22,8 +22,9 @@ const formSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers and hyphens")
     .refine((s) => !RESERVED_SLUGS.has(s), "That slug is reserved"),
   language: z.enum(["es", "en", "de"]).default("es"),
-  bookingMode: z.enum(["whatsapp_handoff", "data_collection"]).default("whatsapp_handoff"),
+  bookingMode: z.enum(["whatsapp_handoff", "data_collection", "cta_url"]).default("whatsapp_handoff"),
   whatsapp: z.string().optional(),
+  maxPages: z.coerce.number().int().min(5).max(200).default(50),
 });
 
 // ── Extraction schema (same as the local script) ─────────────────────────────
@@ -54,6 +55,7 @@ const extractionSchema = z.object({
   }),
   attributes: z.array(z.string()),
   faqs: z.array(z.object({ question: z.string(), answer: z.string() })),
+  links: z.array(z.object({ title: z.string(), url: z.string(), description: z.string() })).default([]),
 });
 
 type State =
@@ -63,8 +65,8 @@ type State =
 
 // ── Crawl ─────────────────────────────────────────────────────────────────────
 
-async function crawlSite(url: string): Promise<string> {
-  const { urls } = await discoverUrls(url, { maxPages: 20, maxDepth: 3 });
+async function crawlSite(url: string, maxPages: number): Promise<string> {
+  const { urls } = await discoverUrls(url, { maxPages, maxDepth: 3 });
   const extractor = new TsFetchExtractor();
   const parts: string[] = [];
   for (const pageUrl of urls) {
@@ -98,6 +100,7 @@ Instructions:
 - For bookingChannels: only links/numbers specifically for booking appointments.
 - For attributes: 3–6 key differentiators worth mentioning.
 - For faqs: 5–10 Q&A pairs from the site content. Don't invent prices.
+- For links: extract important forms, resources, or actions the business offers online (e.g. patient referral forms, appointment request forms, contact forms, patient portal, online booking). For each link include: title (human-readable name), url (the full URL), and description (1 sentence explaining what the form/link is for). Only include links that are clearly useful to a potential customer. Leave empty if none found.
 - Be factual. Do not add information not present in the content.`,
   });
   return object;
@@ -140,7 +143,7 @@ export async function onboardAiAction(
   // Crawl
   let content: string;
   try {
-    content = await crawlSite(input.websiteUrl);
+    content = await crawlSite(input.websiteUrl, input.maxPages);
   } catch (err) {
     return { status: "error", message: `Failed to crawl website: ${err instanceof Error ? err.message : "unknown error"}` };
   }
@@ -202,17 +205,26 @@ export async function onboardAiAction(
       data: { sourceId: source.id, driver: "ts-fetch" },
     });
 
-    if (extracted.faqs.length > 0) {
-      await tx.fAQ.createMany({
-        data: extracted.faqs.map((f) => ({
-          businessId: business.id,
-          question: f.question,
-          answer: f.answer,
-          intents: [],
-          approved: true,
-          source: "manual",
-        })),
-      });
+    const faqRows = [
+      ...extracted.faqs.map((f) => ({
+        businessId: business.id,
+        question: f.question,
+        answer: f.answer,
+        intents: [],
+        approved: true,
+        source: "manual",
+      })),
+      ...extracted.links.map((l) => ({
+        businessId: business.id,
+        question: l.title,
+        answer: `${l.description} ${l.url}`,
+        intents: [],
+        approved: true,
+        source: "manual",
+      })),
+    ];
+    if (faqRows.length > 0) {
+      await tx.fAQ.createMany({ data: faqRows });
     }
   });
 

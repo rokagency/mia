@@ -354,7 +354,27 @@ HOURS RULES
 
   // ── Booking mode ────────────────────────────────────────────────────
   const mode = business.bookingMode ?? "data_collection";
-  if (mode === "whatsapp_handoff" && business.whatsappHandoff) {
+  if (mode === "cta_url" && business.ctaUrl) {
+    const url = business.ctaUrl;
+    sections.push(
+      isEs
+        ? `TURNOS — modo CTA
+Cuando alguien quiere sacar turno o pedir más información, dirigilo a la página de contacto/reservas:
+[Reservar cita](${url})
+No recolectes datos de contacto — la página lo hace directamente.
+Podés llamar saveLead solo si el visitante pide explícitamente que lo contacten por otro medio.`
+        : isDe
+        ? `TERMINE — CTA-Modus
+Bei Terminanfragen den Besucher direkt zur Buchungsseite weiterleiten:
+[Termin buchen](${url})
+Keine Kontaktdaten sammeln — die Seite erledigt das. saveLead nur bei ausdrücklichem Wunsch nach anderem Kanal.`
+        : `BOOKINGS — CTA mode
+When someone wants to book or get in touch, direct them to the booking/contact page:
+[Book an appointment](${url})
+Do not collect contact details — the page handles that directly.
+Only call saveLead if the visitor explicitly requests to be contacted another way.`
+    );
+  } else if (mode === "whatsapp_handoff" && business.whatsappHandoff) {
     const waNumber = business.whatsappHandoff.number;
     sections.push(
       isEs
