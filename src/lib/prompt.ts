@@ -19,8 +19,6 @@ import {
 type Args = {
   business: Business;
   faqs: readonly FAQ[];
-  /** Pre-formatted retrieved-context block from src/lib/retrieval.ts. */
-  retrievedContext?: string;
 };
 
 const DAY_LABELS_EN: Record<string, string> = {
@@ -101,7 +99,6 @@ function formatChannels(
 export function systemPrompt({
   business,
   faqs,
-  retrievedContext,
 }: Args): string {
   const lang = business.language;
   const isEs = lang === "es";
@@ -109,44 +106,6 @@ export function systemPrompt({
 
   const dayLabels = isEs ? DAY_LABELS_ES : isDe ? DAY_LABELS_DE : DAY_LABELS_EN;
   const sections: string[] = [];
-
-  // ── Retrieved context FIRST — pins the model before general knowledge ──
-  // Placing this at the top means the model reads the actual source text
-  // before any instructions, making it much harder to switch into
-  // "educational mode" from pretrained knowledge.
-  if (retrievedContext && retrievedContext.trim().length > 0) {
-    sections.push(
-      isEs
-        ? `=== FUENTE AUTORIZADA — SOLO USÁ ESTA INFORMACIÓN ===
-Los siguientes extractos son la ÚNICA fuente que podés usar para responder.
-NO uses conocimiento general. NO expliques más de lo que dice el texto.
-NO agregues pasos, procesos, ni detalles que no estén escritos abajo.
-Si el visitante pregunta algo que no está en estos extractos, decí que
-no tenés ese dato y ofrecé que lo consulte directamente con el negocio.
-
-${retrievedContext}
-=== FIN DE LA FUENTE AUTORIZADA ===`
-        : isDe
-        ? `=== AUTORISIERTE QUELLE — NUR DIESE INFORMATION VERWENDEN ===
-Die folgenden Auszüge sind die EINZIGE Quelle, die du verwenden darfst.
-KEIN Allgemeinwissen. KEINE Erklärungen über das hinaus, was im Text steht.
-KEINE Schritte, Prozesse oder Details, die unten nicht geschrieben stehen.
-Wenn der Besucher etwas fragt, das nicht in diesen Auszügen steht, sage,
-dass du diese Information nicht hast, und empfehle, das Unternehmen direkt zu kontaktieren.
-
-${retrievedContext}
-=== ENDE DER AUTORISIERTEN QUELLE ===`
-        : `=== AUTHORISED SOURCE — USE ONLY THIS INFORMATION ===
-The following excerpts are the ONLY source you may use to answer.
-NO general knowledge. NO explanations beyond what the text says.
-NO steps, processes, or details not written below.
-If the visitor asks something not covered by these excerpts, say you
-don't have that information and suggest they contact the business directly.
-
-${retrievedContext}
-=== END OF AUTHORISED SOURCE ===`
-    );
-  }
 
   // ── Identity + tone ─────────────────────────────────────────────────
   sections.push(
@@ -164,9 +123,10 @@ real, nunca robótica ni vendedora. Respuestas cortas, salvo que el
 visitante pida más detalle. Usá voseo argentino ("vos", "tenés", "querés"),
 no tuteo. Si el visitante te escribe en otro idioma, respondé en ese idioma.`
       : isDe
-      ? `Ton: freundlich, professionell, präzise. Sprich wie eine echte
-Empfangsdame — niemals roboterhaft oder verkäuferisch. Kurze Antworten,
-außer der Besucher möchte mehr Details. Verwende die höfliche "Sie"-Form.
+      ? `Ton: freundlich, präzise, kurz. Du bist keine Fachexpertin — du gibst
+nur weiter, was auf der Website steht. Wenn ein Besucher Details möchte,
+die nicht auf der Website stehen, sage: "Das beantworten wir Ihnen gerne
+direkt — kontaktieren Sie uns." Verwende die höfliche "Sie"-Form.
 Wenn der Besucher in einer anderen Sprache schreibt, antworte in dieser Sprache.`
       : `Tone: warm, professional, concise. Speak like a real front-desk
 assistant — never robotic, never salesy. Keep replies short unless the
@@ -252,35 +212,32 @@ FORMATO DE RESPUESTA (markdown habilitado)
       : isDe
       ? `GRUNDREGELN
 • Begrüße kurz und frage, womit du helfen kannst.
-• ERFINDE NIEMALS Informationen (Preise, Öffnungszeiten, Mitarbeiter,
-  Qualifikationen, Richtlinien, Verfügbarkeit). Quellen der Wahrheit:
-    1. GENEHMIGTE ANTWORTEN unten (nahezu wörtlich verwenden).
-    2. ABGERUFENER KONTEXT von der Website (falls vorhanden).
-    3. STRUKTURIERTE GESCHÄFTSINFORMATIONEN (Öffnungszeiten, Kontakt usw.).
-    4. SYSTEMDATUM UND -UHRZEIT (autoritativ, siehe unten).
-  Wenn die Antwort in keiner der vier Quellen steht, sage es ehrlich
-  und biete an, die Kontaktdaten entgegenzunehmen.
-• Bei medizinischen Notfällen: sofort den Notruf 112 nennen.
+• Du operierst in einem GESCHLOSSENEN WISSENSBEREICH. Du weißt nur das,
+  was dir in <website_extracts>, in den GENEHMIGTEN ANTWORTEN oder in den
+  GESCHÄFTSINFORMATIONEN explizit gegeben wird. Dein Trainingswissen ist
+  für diese Konversation deaktiviert. Wenn etwas nicht in den verfügbaren
+  Quellen steht, existiert es für dich nicht — sage es ehrlich und empfehle,
+  das Unternehmen direkt zu kontaktieren.
+• Bei Notfällen: sofort den Notruf 112 nennen.
 
-THEMENBEREICH — WORÜBER DU SPRICHST
-Du antwortest nur über das Unternehmen selbst: Leistungen, Öffnungszeiten,
-Standort, Kontakt, Terminvereinbarung und allgemeine Infos aus der Wissensdatenbank.
+THEMENBEREICH
+Du antwortest nur über das Unternehmen: Leistungen, Öffnungszeiten,
+Standort, Kontakt, Terminvereinbarung und Infos aus der Wissensdatenbank.
+Themenfremde Fragen (Sport, Politik, Witze, Code usw.) → höflich ablehnen.
 
-• Themenfremde Fragen (Sport, Politik, Prominente, Nachrichten, Witze,
-  Code usw.) → höflich ablehnen und zum Unternehmen weiterleiten.
-• Keine persönlichen Empfehlungen, Diagnosen oder medizinischen Ratschläge.
-  Für alles Medizinische an eine Beratung verweisen.
+EXTRAKTIONSDISZIPLIN — NULL ERFINDUNG:
+Wenn du Website-Inhalte verwendest, formuliere so nah am Originaltext
+wie möglich. Wenn deine Antwort Wörter enthält, die nicht im Quelltext
+vorkommen (z. B. "Elektrolytlösung", "Goldionen", "Werkstück"), ist das
+ein Zeichen, dass du etwas erfindest — formuliere neu, näher am Original.
 
-STRENGE REGEL — NULL ERFINDUNG:
-Bestätige nur, was WÖRTLICH im abgerufenen Kontext oder in den FAQs steht.
-Füge KEINE Details aus deinem Allgemeinwissen hinzu — keine technischen
-Erklärungen, keine Synonyme, keine Ergänzungen. Wenn der Besucher mehr
-Details möchte als im Quelltext steht, sage: „Für weitere Details wenden
-Sie sich bitte direkt an uns." Vervollständige niemals mit eigenem Wissen.
+Beispiel für korrekte Ablehnung:
+Besucher: "Wie genau funktioniert der Galvanik-Prozess chemisch?"
+Mia: "Diese technischen Details haben wir auf unserer Website nicht beschrieben. Wenden Sie sich gerne direkt an uns."
 
 ANTWORTFORMAT (Markdown aktiviert)
 • Markdown verwenden: **fett**, Bindestrichlisten, [Text](url)-Links.
-• Antworten kurz und übersichtlich halten.`
+• Antworten kurz halten — 1–3 Sätze wenn möglich.`
       : `CORE RULES
 • Greet briefly and ask how you can help.
 • NEVER invent information (prices, hours, doctors, credentials,
@@ -604,60 +561,50 @@ the substance.`;
     sections.push(`${intro}\n\n${items}`);
   }
 
-  // ── Retrieved context reminder at the end (reinforces the top block) ──
-  if (retrievedContext && retrievedContext.trim().length > 0) {
-    sections.push(
-      isEs
-        ? `CONTEXTO RECUPERADO DEL SITIO WEB
-Estos extractos vienen del SITIO WEB OFICIAL del negocio y son
-específicos a la pregunta actual del visitante. Es información que el
-negocio publica abiertamente — usarla NO es dar consejo médico.
-
-Reglas para usar este contexto:
-1. Si los extractos responden la pregunta, USALOS COMO FUENTE
-   PRINCIPAL. No digas "no tengo ese dato" cuando el dato está abajo.
-2. AFIRMÁ SOLO LO QUE ESTÁ ESCRITO. Si el extracto dice
-   "enrojecimiento y descamación leve", no digas "costras e
-   hinchazón". Si dice "48 horas", no digas "una semana". Cero
-   añadidos desde tu conocimiento general.
-3. Si el visitante pregunta detalles que el extracto NO cubre
-   (por ejemplo "¿cuánto duele?" cuando el texto no menciona
-   dolor), respondé que ese detalle se evalúa en la consulta —
-   no completes con suposiciones.
-4. Citá el dato concreto (no la URL).
-
-${retrievedContext}`
-        : isDe
-        ? `ABGERUFENER KONTEXT VON DER WEBSITE
-Diese Auszüge stammen von der OFFIZIELLEN WEBSITE des Unternehmens und sind
-spezifisch für die aktuelle Frage des Besuchers.
-
-Regeln für die Verwendung dieses Kontexts:
-1. Wenn die Auszüge die Frage beantworten, VERWENDE SIE ALS HAUPTQUELLE.
-   Sage nicht „das weiß ich nicht", wenn die Information unten steht.
-2. BESTÄTIGE NUR, WAS WÖRTLICH GESCHRIEBEN STEHT. Wenn der Text
-   „hauchdünne Goldschicht" sagt, sage nicht „Goldionen in einer Lösung".
-   Wenn der Text „elektrochemisch" sagt, erkläre nicht die Chemie dahinter.
-   NULL Ergänzungen aus deinem Allgemeinwissen.
-3. Wenn der Besucher Details fragt, die der Auszug NICHT abdeckt,
-   antworte, dass dieses Detail am besten direkt beim Unternehmen
-   erfragt werden kann — keine Vermutungen.
-4. Zitiere den konkreten Fakt, nicht die URL.
-
-STRENGE REGEL — NULL ERFINDUNG:
-Gib nur wieder, was WÖRTLICH im Kontext oder in den FAQs steht.
-Füge KEINE technischen Erklärungen, Synonyme oder Details hinzu,
-die nicht im Quelltext vorkommen.
-
-${retrievedContext}`
-        : `RETRIEVED CONTEXT FROM THE WEBSITE
-These excerpts come from the business website and are specific to the
-visitor's current question. If they answer it, treat them as primary
-source. Cite the fact, not the URL.
-
-${retrievedContext}`
-    );
-  }
-
   return sections.join("\n\n");
+}
+
+/**
+ * Builds the grounded user turn — wraps the visitor's question with
+ * retrieved website context as a closed-book reading-comprehension task.
+ *
+ * Injected as the last user message in the conversation, replacing the
+ * raw visitor message. This places retrieved context immediately before
+ * the model generates its response — far more effective than burying it
+ * in the system prompt where it competes with 2000+ tokens of instructions.
+ */
+export function groundedUserTurn({
+  lang,
+  retrievedContext,
+  userQuestion,
+}: {
+  lang: string;
+  retrievedContext: string;
+  userQuestion: string;
+}): string {
+  const hasContext = retrievedContext.trim().length > 0;
+  const isEs = lang === "es";
+  const isDe = lang === "de";
+
+  const contextBlock = hasContext
+    ? `<website_extracts>\n${retrievedContext}\n</website_extracts>`
+    : isDe
+    ? `<website_extracts>\n(Keine relevanten Auszüge für diese Frage gefunden.)\n</website_extracts>`
+    : isEs
+    ? `<website_extracts>\n(No se encontraron extractos relevantes para esta pregunta.)\n</website_extracts>`
+    : `<website_extracts>\n(No relevant excerpts found for this question.)\n</website_extracts>`;
+
+  const instruction = isDe
+    ? `Beantworte die folgende Besucherfrage AUSSCHLIESSLICH mit Informationen aus <website_extracts>.
+Wenn die Antwort dort nicht steht, antworte NUR mit: "Diese Information haben wir auf unserer Website nicht — kontaktieren Sie uns gerne direkt."
+Verwende keine anderen Quellen. Erkläre nichts, was nicht wörtlich oben steht.`
+    : isEs
+    ? `Respondé la siguiente pregunta del visitante EXCLUSIVAMENTE con información de <website_extracts>.
+Si la respuesta no está ahí, respondé SOLO con: "No tengo ese dato en nuestra web — te invito a consultarlo directamente con nosotros."
+No uses otras fuentes. No expliques nada que no esté literalmente escrito arriba.`
+    : `Answer the following visitor question ONLY using information from <website_extracts>.
+If the answer is not there, respond ONLY with: "I don't have that information on our website — please contact us directly."
+Do not use other sources. Do not explain anything not literally written above.`;
+
+  return `${contextBlock}\n\n${instruction}\n\nVisitor question: ${userQuestion}`;
 }

@@ -47,13 +47,14 @@ function dictFor(language: string): string {
 export async function searchChunks(
   businessId: string,
   query: string,
-  options: { language?: string; limit?: number } = {}
+  options: { language?: string; limit?: number; minScore?: number } = {}
 ): Promise<RetrievedChunk[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
   const dict = dictFor(options.language ?? "es");
   const limit = options.limit ?? DEFAULT_LIMIT;
+  const minScore = options.minScore ?? 0.01;
 
   // websearch_to_tsquery handles real user input (quoted phrases, OR
   // operators, free-form words) without throwing on bad syntax.
@@ -83,13 +84,15 @@ export async function searchChunks(
     businessId
   );
 
-  return rows.map((r) => ({
-    text: r.text,
-    pageType: r.pageType,
-    url: r.url,
-    title: r.title,
-    score: Number(r.score), // pg returns numeric — cast to plain number
-  }));
+  return rows
+    .map((r) => ({
+      text: r.text,
+      pageType: r.pageType,
+      url: r.url,
+      title: r.title,
+      score: Number(r.score),
+    }))
+    .filter((r) => r.score >= minScore);
 }
 
 /**

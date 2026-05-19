@@ -11,7 +11,7 @@ import {
 } from "@/lib/conversations";
 import { createFixedTextStreamResponse } from "@/lib/data-stream";
 import { leadFieldsSchema, saveLead } from "@/lib/leads";
-import { systemPrompt } from "@/lib/prompt";
+import { groundedUserTurn, systemPrompt } from "@/lib/prompt";
 import { formatChunksForPrompt, searchChunks } from "@/lib/retrieval";
 import { evaluateFastSafetyGuard } from "@/lib/safety-guard";
 
@@ -43,7 +43,7 @@ async function handleTurn(
     model: openai(MODEL),
     system: ctx.systemText,
     messages,
-    temperature: 0.6,
+    temperature: 0.3,
     maxTokens: MAX_OUTPUT_TOKENS,
     tools: {
       saveLead: tool({
@@ -228,8 +228,8 @@ export async function POST(req: Request) {
   const retrieved = userText
     ? await searchChunks(active.id, userText, {
         language: active.business.language,
-        // limit defaults to 3 in retrieval.ts; explicit here for visibility.
         limit: 3,
+        minScore: 0.05,
       }).catch((err) => {
         console.error("Retrieval failed:", err);
         return [];
@@ -240,10 +240,26 @@ export async function POST(req: Request) {
   const systemText = systemPrompt({
     business: active.business,
     faqs: active.faqs,
-    retrievedContext,
   });
 
-  const result = await handleTurn(messages, {
+  // Replace the last user message with a grounded turn that wraps
+  // the visitor's question with retrieved context as a closed-book task.
+  const groundedTurn = userText
+    ? groundedUserTurn({
+        lang: active.business.language ?? "es",
+        retrievedContext,
+        userQuestion: userText,
+      })
+    : null;
+
+  const augmentedMessages: CoreMessage[] = groundedTurn
+    ? [
+        ...messages.slice(0, -1),
+        { role: "user", content: groundedTurn },
+      ]
+    : messages;
+
+  const result = await handleTurn(augmentedMessages, {
     businessId: active.id,
     systemText,
     conversationId,
