@@ -96,9 +96,12 @@ export async function searchChunks(
 }
 
 /**
- * Format retrieved chunks for inclusion in the system prompt.
- * Each block carries source URL + page type so the AI can cite or skip
- * irrelevant snippets, and so the operator can audit what the AI saw.
+ * Format retrieved chunks for inclusion in the grounded user turn.
+ *
+ * Format: each chunk wrapped in a numbered <excerpt> tag with source as
+ * an attribute. Reads as "source metadata + literal text" rather than
+ * a narrative header — discourages the model from treating chunks as
+ * "background to summarize" and pushes it toward "literal text to quote".
  *
  * The final string is hard-capped at MAX_CONTEXT_CHARS. We drop trailing
  * blocks (lower-ranked) before truncating mid-block — keeping the top
@@ -106,23 +109,19 @@ export async function searchChunks(
  */
 export function formatChunksForPrompt(chunks: RetrievedChunk[]): string {
   if (chunks.length === 0) return "";
-  const separator = "\n\n---\n\n";
+  const separator = "\n";
 
   const blocks = chunks.map((c, i) => {
-    const header =
-      `[${i + 1}] ${c.pageType ?? "page"} — ${c.title ?? "(sin título)"}\n` +
-      `Fuente: ${c.url}`;
-    return `${header}\n\n${c.text.trim()}`;
+    const url = (c.url ?? "").replace(/"/g, "");
+    return `<excerpt id="${i + 1}" source="${url}">\n${c.text.trim()}\n</excerpt>`;
   });
 
   let out = "";
   for (let i = 0; i < blocks.length; i++) {
     const next = i === 0 ? blocks[i] : out + separator + blocks[i];
     if (next.length > MAX_CONTEXT_CHARS) {
-      // If even the first block alone overflows, hard-truncate it so
-      // the model still gets the top hit — better than empty context.
       if (i === 0) {
-        out = blocks[i].slice(0, MAX_CONTEXT_CHARS - 20) + "\n…[truncado]";
+        out = blocks[i].slice(0, MAX_CONTEXT_CHARS - 20) + "\n…[truncated]";
       }
       break;
     }

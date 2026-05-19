@@ -237,26 +237,47 @@ export async function POST(req: Request) {
     : [];
   const retrievedContext = formatChunksForPrompt(retrieved);
 
+  if (DEV) {
+    console.log(
+      `[rag] business=${active.slug} query=${JSON.stringify(userText)} chunks=${retrieved.length} topScore=${retrieved[0]?.score ?? 0}`
+    );
+  }
+
   const systemText = systemPrompt({
     business: active.business,
     faqs: active.faqs,
   });
 
-  // Replace the last user message with a grounded turn that wraps
-  // the visitor's question with retrieved context as a closed-book task.
+  // Build the grounded turn (replaces the last user message).
   const groundedTurn = userText
     ? groundedUserTurn({
         lang: active.business.language ?? "es",
         retrievedContext,
         userQuestion: userText,
+        businessName: active.business.name,
       })
     : null;
 
+  // ── Hallucination-resistant message history ──────────────────────
+  //
+  // Previous assistant turns can contain hallucinated content (the model
+  // "explained" something not on the website). Feeding those back as
+  // conversation history teaches the model to keep doing it — its own
+  // prior outputs become evidence of "how Mia talks".
+  //
+  // Strategy: keep a short, recent window of the conversation for natural
+  // multi-turn flow (so "and the price?" still makes sense), but cap it
+  // to MAX_HISTORY_TURNS pairs. The grounded turn carries all the
+  // context the model needs to answer correctly for THIS question.
+  const MAX_HISTORY_TURNS = 4; // 4 user + 4 assistant = 8 messages
+  const priorMessages = messages.slice(0, -1); // drop the raw last user turn
+  const trimmedPrior =
+    priorMessages.length > MAX_HISTORY_TURNS * 2
+      ? priorMessages.slice(-MAX_HISTORY_TURNS * 2)
+      : priorMessages;
+
   const augmentedMessages: CoreMessage[] = groundedTurn
-    ? [
-        ...messages.slice(0, -1),
-        { role: "user", content: groundedTurn },
-      ]
+    ? [...trimmedPrior, { role: "user", content: groundedTurn }]
     : messages;
 
   const result = await handleTurn(augmentedMessages, {
