@@ -1,8 +1,11 @@
 {
   "folders": [
-	{
-		"path": "."
-	}
-],
-  "settings": {}
+    {
+      "path": ".",
+    },
+    {
+      "path": "../../Users/santi/Downloads/mxchat-basic.3.2.5/mxchat-basic",
+    },
+  ],
+  "settings": {},
 }
