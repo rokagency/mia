@@ -39,7 +39,9 @@ const MAX_CONTEXT_CHARS = 2_500;
  * extend this map.
  */
 function dictFor(language: string): string {
-  return language === "en" ? "english" : "spanish";
+  if (language === "en") return "english";
+  if (language === "de") return "german";
+  return "spanish";
 }
 
 export async function searchChunks(

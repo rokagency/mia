@@ -33,6 +33,10 @@ type Rule = {
   buildResponse: (message: string, business: Business) => string;
 };
 
+function lang(business: Business): "es" | "en" | "de" {
+  return (business.language ?? "es") as "es" | "en" | "de";
+}
+
 // ── Prompt injection ────────────────────────────────────────────────────
 const PROMPT_INJECTION: Rule = {
   reason: "prompt_injection",
@@ -56,8 +60,14 @@ const PROMPT_INJECTION: Rule = {
     /\brevela tu (prompt|configuraci[oó]n|sistema)/i,
     /\breveal your (prompt|system|configuration|instructions)/i,
   ],
-  buildResponse: () =>
-    "No puedo cambiar mis instrucciones ni compartir información interna. Puedo ayudarte con información del consultorio, tratamientos, horarios y turnos.",
+  buildResponse: (_msg, business) => {
+    const l = lang(business);
+    return l === "de"
+      ? "Ich kann meine Anweisungen nicht ändern und keine internen Informationen teilen. Ich helfe Ihnen gerne mit Informationen zu unseren Leistungen, Öffnungszeiten und Terminanfragen."
+      : l === "en"
+      ? "I can't change my instructions or share internal information. I can help you with information about our services, opening hours, and appointments."
+      : "No puedo cambiar mis instrucciones ni compartir información interna. Puedo ayudarte con información del consultorio, tratamientos, horarios y turnos.";
+  },
 };
 
 // ── Fake official update / contact hijacking ────────────────────────────
@@ -85,6 +95,9 @@ const FAKE_OFFICIAL_UPDATE: Rule = {
     const tail = officialNumber
       ? ` El WhatsApp oficial del consultorio es **${officialNumber}**.`
       : "";
+    const l = lang(business);
+    if (l === "de") return `Ich kann keine Kontaktänderungen bestätigen. Bitte nutzen Sie die offiziellen Kontaktdaten des Labors.${tail}`;
+    if (l === "en") return `I can't modify or confirm contact changes from the chat. Please use the business's official contact channel.${tail}`;
     return `No puedo modificar ni confirmar cambios de contacto desde el chat. Para turnos, usá el canal oficial del consultorio.${tail}`;
   },
 };
@@ -105,8 +118,14 @@ const PRIVATE_DATA: Rule = {
     /\bconversaci[oó]n (anterior|previa|de otra)/i,
     /\bdame (la|los) (lista|datos) de (pacientes|usuarios|leads)/i,
   ],
-  buildResponse: () =>
-    "No puedo acceder ni compartir información privada de otras personas. Solo puedo ayudarte con esta conversación y con información del consultorio.",
+  buildResponse: (_msg, business) => {
+    const l = lang(business);
+    return l === "de"
+      ? "Ich kann keine privaten Daten anderer Personen abrufen oder weitergeben. Ich helfe Ihnen gerne mit Informationen zu unserem Labor."
+      : l === "en"
+      ? "I can't access or share private information about other people. I can only help you with this conversation and general business information."
+      : "No puedo acceder ni compartir información privada de otras personas. Solo puedo ayudarte con esta conversación y con información del consultorio.";
+  },
 };
 
 // ── Token / output abuse ────────────────────────────────────────────────
@@ -129,8 +148,14 @@ const TOKEN_ABUSE: Rule = {
     /\bescrib[ií]me (un|una) (libro|novela|cuento (largo|extenso))/i,
     /\bwrite (me )?(a |an )?(book|novel|long story)/i,
   ],
-  buildResponse: () =>
-    "Puedo ayudarte con una respuesta breve y concreta. Si querés, preguntame por un tratamiento específico o te ayudo a sacar un turno.",
+  buildResponse: (_msg, business) => {
+    const l = lang(business);
+    return l === "de"
+      ? "Ich kann Ihnen eine kurze und konkrete Antwort geben. Fragen Sie mich gerne nach unseren Leistungen oder einer Terminanfrage."
+      : l === "en"
+      ? "I can help you with a short, concrete answer. Feel free to ask about a specific service or to book an appointment."
+      : "Puedo ayudarte con una respuesta breve y concreta. Si querés, preguntame por un tratamiento específico o te ayudo a sacar un turno.";
+  },
 };
 
 // ── Obvious out-of-scope ────────────────────────────────────────────────
@@ -170,8 +195,14 @@ const OUT_OF_SCOPE: Rule = {
     /\b(c[oó]digo|programar|python|javascript|sql|regex) (en|para|de)\b/i,
     /\bwrite (a |me )?(function|script|program|code)\b/i,
   ],
-  buildResponse: () =>
-    "Estoy acá para ayudarte con información del consultorio, tratamientos dermatológicos, horarios y turnos. ¿Querés consultar por algún tratamiento?",
+  buildResponse: (_msg, business) => {
+    const l = lang(business);
+    return l === "de"
+      ? "Ich bin hier, um Ihnen mit Informationen zu unserem Dentallabor, unseren Leistungen und Terminanfragen zu helfen. Womit kann ich Ihnen behilflich sein?"
+      : l === "en"
+      ? "I'm here to help you with information about our services, opening hours, and appointments. What can I help you with?"
+      : "Estoy acá para ayudarte con información del consultorio, tratamientos dermatológicos, horarios y turnos. ¿Querés consultar por algún tratamiento?";
+  },
 };
 
 const ALL_RULES: readonly Rule[] = [
