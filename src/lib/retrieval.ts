@@ -44,6 +44,30 @@ function dictFor(language: string): string {
   return "spanish";
 }
 
+/**
+ * Convert a free-form user question into a tsquery OR-expression of its
+ * significant words. websearch_to_tsquery defaults to AND between terms,
+ * which kills recall on long questions ("Wie wird die Goldschicht bei
+ * der Galvanotechnik aufgetragen" → 0 results because no single chunk
+ * contains every word).
+ *
+ * We strip punctuation, drop very short tokens (≤2 chars — common stop
+ * words like "el", "de", "es", "is", "an"), and OR-join what remains.
+ * ts_rank still scores chunks by how many query words match, so the most
+ * relevant chunks float to the top.
+ */
+function buildOrQuery(input: string): string {
+  const words = input
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ") // strip punctuation
+    .split(/\s+/)
+    .filter((w) => w.length >= 3); // drop stop-word-ish tokens
+  if (words.length === 0) return "";
+  // Dedupe and join with OR
+  const unique = Array.from(new Set(words));
+  return unique.join(" | ");
+}
+
 export async function searchChunks(
   businessId: string,
   query: string,
@@ -56,10 +80,11 @@ export async function searchChunks(
   const limit = options.limit ?? DEFAULT_LIMIT;
   const minScore = options.minScore ?? 0.01;
 
-  // websearch_to_tsquery handles real user input (quoted phrases, OR
-  // operators, free-form words) without throwing on bad syntax.
-  // ts_rank scores results so the most lexically relevant chunks float
-  // to the top.
+  const orQuery = buildOrQuery(trimmed);
+  if (!orQuery) return [];
+
+  // to_tsquery with explicit OR — every significant query word
+  // contributes to ts_rank. Chunks matching more words score higher.
   const rows = await prisma.$queryRawUnsafe<RetrievedChunk[]>(
     `
     SELECT
@@ -69,18 +94,18 @@ export async function searchChunks(
       d.title                                                   AS title,
       ts_rank(
         to_tsvector('${dict}', c.text),
-        websearch_to_tsquery('${dict}', $1)
+        to_tsquery('${dict}', $1)
       )                                                         AS score
     FROM "Chunk" c
     JOIN "Document" d ON c."documentId" = d.id
     WHERE
       c."businessId" = $2
       AND d.excluded = false
-      AND to_tsvector('${dict}', c.text) @@ websearch_to_tsquery('${dict}', $1)
+      AND to_tsvector('${dict}', c.text) @@ to_tsquery('${dict}', $1)
     ORDER BY score DESC
     LIMIT ${limit};
     `,
-    trimmed,
+    orQuery,
     businessId
   );
 
