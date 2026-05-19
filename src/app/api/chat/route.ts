@@ -21,11 +21,6 @@ export const maxDuration = 30;
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
-// Short conversational messages that don't need RAG retrieval.
-// Greetings, thanks, language-switch requests, sign-offs.
-const CONVERSATIONAL_RE =
-  /^(hallo|hola|hi|hey|hello|guten\s+tag|buenas?|buenos\s+(días|tardes|noches)|gracias|danke|thank\s+you|thanks|bitte|de\s+nada|tschüss?|bye|hasta\s+luego|auf\s+wiedersehen|can\s+you\s+speak|kannst\s+du\s+auf|puedes\s+hablar|hablas?\s+ingl[eé]s|speak\s+(english|german|spanish)|en\s+ingl[eé]s\s+por\s+favor|please\s+respond\s+in|antworte?\s+(auf|in)\s+(englisch|deutsch|español))[.,!?\s]*$/i;
-
 // Hard limits enforced regardless of caller. These are deliberately
 // generous for normal use and tight enough to bound abuse cost.
 const MAX_USER_MESSAGE_CHARS = 800;
@@ -230,11 +225,7 @@ export async function POST(req: Request) {
     }).catch((err) => console.error("Failed to log user message:", err));
   }
 
-  // Skip retrieval for short conversational messages that aren't
-  // knowledge questions (greetings, language switches, thanks, etc.).
-  const isConversational = CONVERSATIONAL_RE.test(userText);
-
-  const retrieved = userText && !isConversational
+  const retrieved = userText
     ? await searchChunks(active.id, userText, {
         language: active.business.language,
         limit: 3,
@@ -256,9 +247,11 @@ export async function POST(req: Request) {
     faqs: active.faqs,
   });
 
-  // Build the grounded turn (replaces the last user message).
-  // Skip for conversational messages — no extracts, no retrieval task.
-  const groundedTurn = userText && !isConversational
+  // Build the grounded turn only when we have retrieved context.
+  // With no chunks the closed-book task fires the refusal template —
+  // better to let the system prompt handle it naturally (covers language
+  // switches, greetings, and any question that didn't match any chunk).
+  const groundedTurn = userText && retrievedContext
     ? groundedUserTurn({
         lang: active.business.language ?? "es",
         retrievedContext,
