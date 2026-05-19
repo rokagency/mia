@@ -32,11 +32,19 @@ export default async function AdminHome() {
 
   return (
     <div>
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold">Clients</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          All businesses registered in this Mia instance.
-        </p>
+      <header className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Clients</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            All businesses registered in this Mia instance.
+          </p>
+        </div>
+        <Link
+          href="/admin/new"
+          className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+        >
+          + New client
+        </Link>
       </header>
 
       <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
