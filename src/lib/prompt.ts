@@ -635,7 +635,9 @@ Schritt 2: Wenn du eine Antwort findest:
   • Verwende KEINE Wörter, die nicht in den Auszügen vorkommen.
   • Halte die Antwort auf 1–3 Sätze begrenzt.
 
-Schritt 3: Wenn die Auszüge die Frage NICHT beantworten (auch wenn dein allgemeines Wissen es könnte):
+Schritt 2b: Wenn die Auszüge die Frage NICHT beantworten — prüfe die GENEHMIGTEN ANTWORTEN im System-Prompt. Wenn dort eine passende Antwort steht, verwende sie nahezu wörtlich.
+
+Schritt 3: Nur wenn weder die Auszüge noch die GENEHMIGTEN ANTWORTEN die Frage beantworten:
   • Sage freundlich, dass du diese Frage an das Team weitergeben kannst.
   • Biete aktiv an, die Anfrage weiterzuleiten — über den bevorzugten Kanal aus den GESCHÄFTSINFORMATIONEN (WhatsApp, Telefon oder E-Mail).
   • Frag nach dem Namen und der Frage, wenn noch nicht bekannt, damit das Team vorbereitet ist.
@@ -671,7 +673,9 @@ Paso 2: Si encontrás una respuesta:
   • NO uses palabras que no aparezcan en los extractos.
   • Limitá la respuesta a 1–3 oraciones.
 
-Paso 3: Si los extractos NO responden la pregunta (aunque tu conocimiento general sí lo haga):
+Paso 2b: Si los extractos NO responden la pregunta — revisá las RESPUESTAS APROBADAS en el system prompt. Si hay una que aplica, usala casi textual.
+
+Paso 3: Solo si ni los extractos ni las RESPUESTAS APROBADAS responden la pregunta:
   • Decí con amabilidad que podés trasladar la consulta al equipo.
   • Ofrecé activamente conectar al visitante — por el canal preferido de la INFORMACIÓN DEL NEGOCIO (WhatsApp, teléfono o email).
   • Si no sabés su nombre, preguntalo para que el equipo esté preparado.
@@ -706,7 +710,9 @@ Step 2: If you find an answer:
   • Do NOT use words that don't appear in the extracts.
   • Limit the answer to 1–3 sentences.
 
-Step 3: If the extracts do NOT answer the question (even if your general knowledge could):
+Step 2b: If the extracts do NOT answer the question — check the APPROVED ANSWERS in the system prompt. If one fits, use it nearly verbatim.
+
+Step 3: Only if neither the extracts nor the APPROVED ANSWERS answer the question:
   • Say warmly that you can pass the question on to the team.
   • Actively offer to connect them — via the preferred channel from BUSINESS INFORMATION (WhatsApp, phone, or email).
   • If you don't know their name yet, ask for it so the team is prepared.
