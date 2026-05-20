@@ -65,6 +65,17 @@ const USELESS_PATTERNS: RegExp[] = [
   /[?&]page=\d+/i,
   /[?&]p=\d+/i,
 
+  // WordPress preview / draft / revision URLs
+  /[?&]preview=true/i,
+  /[?&]preview_id=/i,
+  /[?&]status=draft/i,
+  /[?&]revision=/i,
+
+  // AMP / print variants (duplicate content)
+  /\/amp\/?$/i,
+  /[?&]amp=1/i,
+  /[?&]print=/i,
+
   // Static assets
   /\.(pdf|jpg|jpeg|png|gif|webp|svg|ico|css|js|mjs|map|xml|zip|tar|gz|mp3|mp4|mov|woff2?|ttf|eot)(\?|$)/i,
 ];
