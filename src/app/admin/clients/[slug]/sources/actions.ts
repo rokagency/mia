@@ -7,6 +7,30 @@ import { prisma } from "@/lib/db";
  * Queue a new IngestJob for an existing KnowledgeSource. The worker
  * polls every few seconds and will pick it up.
  */
+export async function reindexAllAction(slug: string) {
+  const business = await prisma.business.findUnique({
+    where: { slug },
+    select: { id: true },
+  });
+  if (!business) throw new Error("Business not found");
+
+  const sources = await prisma.knowledgeSource.findMany({
+    where: { businessId: business.id },
+    select: { id: true },
+  });
+
+  await prisma.ingestJob.createMany({
+    data: sources.map((s) => ({
+      sourceId: s.id,
+      status: "pending" as const,
+      driver: "ts-fetch",
+    })),
+  });
+
+  revalidatePath(`/admin/clients/${slug}/sources`);
+  revalidatePath(`/admin/clients/${slug}/jobs`);
+}
+
 export async function reindexAction(slug: string, sourceId: string) {
   // Sanity check: the source must belong to this business.
   const source = await prisma.knowledgeSource.findFirst({

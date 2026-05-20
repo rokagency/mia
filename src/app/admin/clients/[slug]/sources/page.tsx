@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { bulkAddSourcesAction, createSourceAction, reindexAction } from "./actions";
+import { bulkAddSourcesAction, createSourceAction, reindexAction, reindexAllAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +35,22 @@ export default async function SourcesPage({
         <p className="mt-1 text-sm text-neutral-500">
           URLs the worker crawls and indexes for retrieval.
         </p>
+        {sources.length > 0 && (
+          <form
+            action={async () => {
+              "use server";
+              await reindexAllAction(slug);
+            }}
+            className="mt-3"
+          >
+            <button
+              type="submit"
+              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            >
+              Reindex all sources
+            </button>
+          </form>
+        )}
       </header>
 
       <div className="space-y-3">
