@@ -50,7 +50,15 @@ export default async function ConversationsPage({
         >
           ← {business.name}
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">Conversations</h1>
+        <div className="mt-1 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Conversations</h1>
+          <a
+            href={`/admin/clients/${slug}/conversations/export`}
+            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+          >
+            Download TSV
+          </a>
+        </div>
         <p className="mt-1 text-sm text-neutral-500">
           Visitor chat sessions, newest first.
         </p>
