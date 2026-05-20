@@ -102,6 +102,30 @@ function htmlToMarkdown(html: string, url: string): { title: string | null; md: 
 
   const titleFromDom = doc.querySelector("title")?.textContent?.trim() ?? null;
 
+  // Unwrap accordion/toggle widgets before Readability runs.
+  // WordPress themes (Nectar, Salient, WPBakery, Divi, etc.) hide FAQ
+  // answers inside collapsed divs — Readability strips these as non-article
+  // chrome. We convert them to plain visible divs so the text is kept.
+  const ACCORDION_SELECTORS = [
+    ".toggle-title",         // Nectar/Salient toggle heading
+    ".inner-toggle-wrap",    // Nectar/Salient toggle body wrapper
+    ".accordion-title",
+    ".accordion-content",
+    ".faq-question",
+    ".faq-answer",
+    '[class*="accordion"]',
+    '[class*="toggle"]',
+    '[class*="collapse"]',
+    '[class*="expand"]',
+  ];
+  for (const sel of ACCORDION_SELECTORS) {
+    doc.querySelectorAll(sel).forEach((el) => {
+      const div = doc.createElement("div");
+      div.innerHTML = el.innerHTML;
+      el.replaceWith(div);
+    });
+  }
+
   let articleHtml = doc.body.innerHTML;
   let articleTitle = titleFromDom;
 
